@@ -84,6 +84,13 @@ jobs:
           set -euo pipefail
           "$GODOT_BIN" --headless --path . --import 2>&1 | tail -40
 
+      - name: Point export preset to the CI keystores
+        run: |
+          set -euo pipefail
+          sed -i "s|res://android/debug.keystore|$PWD/android/debug.keystore|" export_presets.cfg
+          sed -i "s|res://android/release.keystore|$PWD/android/release.keystore|" export_presets.cfg
+          grep -n "keystore/" export_presets.cfg
+
       - name: Export release APK
         run: |
           set -euo pipefail
