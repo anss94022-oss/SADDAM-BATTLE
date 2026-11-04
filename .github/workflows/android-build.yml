@@ -1,0 +1,96 @@
+name: Android APK Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_RELEASE: "4.3-stable"
+  GODOT_TEMPLATES_VERSION: "4.3.stable"
+
+jobs:
+  build-apk:
+    name: Build debug and release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          set -euo pipefail
+          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          yes | sdkmanager --licenses > /dev/null || true
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+
+      - name: Download Godot engine and export templates
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/godot"
+          cd "$HOME/godot"
+
+          curl -sSL -o godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x "Godot_v${GODOT_RELEASE}_linux.x86_64"
+
+          curl -sSL -o templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          unzip -q templates.tpz -d "$HOME/.local/share/godot/export_templates"
+          mv "$HOME/.local/share/godot/export_templates/templates" \
+             "$HOME/.local/share/godot/export_templates/${GODOT_TEMPLATES_VERSION}" || true
+
+          echo "GODOT_BIN=$HOME/godot/Godot_v${GODOT_RELEASE}_linux.x86_64" >> "$GITHUB_ENV"
+
+      - name: Import project
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --path . --import 2>&1 | tail -40
+
+      - name: Export release APK
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          "$GODOT_BIN" --headless --path . --export-release "Android" build/saddam-battle-release.apk 2>&1 | tee export.log
+
+      - name: Verify APK
+        run: |
+          set -euo pipefail
+          ls -lh build/
+          test -s build/saddam-battle-release.apk
+          unzip -l build/saddam-battle-release.apk | head -5
+          echo "APK size: $(stat -c%s build/saddam-battle-release.apk) bytes"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: saddam-battle-apk
+          path: build/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload export logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: export-logs
+          path: |
+            export.log
+          if-no-files-found: warn
+          retention-days: 7

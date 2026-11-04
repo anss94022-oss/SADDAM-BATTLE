@@ -867,3 +867,44 @@ Single-player must work entirely offline.
 Local multiplayer must work between up to five Android devices through Wi-Fi or mobile hotspot without internet or external servers.
 
 All requested features must be implemented, integrated and tested before being declared complete.
+
+---
+
+## حالة التنفيذ الحالية (v1.0.0)
+
+تم بناء المشروع فعلياً بمحتوى حقيقي وقابل للعب:
+
+- محرك Godot 4.3، واجهة GDScript، تصيير Mobile، والعمل بلا إنترنت بالكامل.
+- حملة من 12 مهمة في `data/missions/missions.json` (تدريب، قرية، قاعدة، مستودع، جبل، مصنع، مواجهة القائد).
+- لاعب ثلاثي الأبعاد مع كاميرا خلف الكتف، جري، انحناء، قفز، وإعادة تلقيم.
+- ثلاث أسلحة: بندقية هجومية، قناصة بتقريب 6x، وشوزن (خرطوش).
+- أعداء بذكاء اصطناعي: مطاردة، خط رؤية، مناورة جانبية، وإطلاق نار بدقة متغيّرة.
+- نظام إصابة بالرأس (ضرر ×2.6)، مؤشر إصابة، ووميض ضرر.
+- ست خرائط تُبنى برمجياً مع تغطية وبيئات وإضاءة مختلفة.
+- واجهة عربية كاملة: صحة، ذخيرة، هدف، مؤقت، قتلى، إيقاف مؤقت، نتيجة المهمة.
+- عناصر تحكم لمسية لأندرويد: عصا حركة، سحب للنظر، إطلاق، تصويب، تلقيم، تبديل سلاح، قفز.
+- حفظ محلي للتقدم في `user://saddam_battle_save.json` (خبرة، مستوى، عملات، مهام مكتملة).
+- إعدادات: حساسية النظر، عكس المحور، جودة الرسوم (فائقة/عالية/أداء)، مستوى الصوت.
+- صور الأبطال في `assets/characters/` وأيقونة التطبيق `icon.png`.
+- اختبار آلي: `tests/gameplay/smoke_test.gd` يحمّل المشهد ويبدأ مهمة ويشغّل 240 إطاراً.
+- سير عمل GitHub Actions: `project-validation.yml` (تحقق + اختبار) و`android-build.yml` (بناء APK).
+
+### التشغيل محلياً
+
+```
+godot --path .        # تشغيل اللعبة
+godot --headless --path . --script tests/gameplay/smoke_test.gd   # اختبار آلي
+```
+
+### البناء لأندرويد
+
+```
+godot --headless --path . --export-release "Android" build/saddam-battle-release.apk
+```
+
+### المرحلة التالية
+
+- تعدد اللاعبين المحلي عبر Wi-Fi (ENet) — الهيكل جاهز في `scripts/network/` ولم يُفعّل بعد.
+- سيارات ودراجات ومروحيات (نظام النقل).
+- مؤثرات صوتية وأسلحة إضافية ومهام جانبية.
+
