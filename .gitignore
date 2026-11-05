@@ -29,3 +29,9 @@ build/*.apk
 build/*.aab
 build/*.pck
 logs/
+
+# Signing material must never be committed
+android/*.keystore
+android/*.jks
+build/
+.godot/

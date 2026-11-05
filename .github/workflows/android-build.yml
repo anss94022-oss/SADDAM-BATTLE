@@ -2,7 +2,7 @@ name: Android APK Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, rebuild/v2]
   workflow_dispatch:
 
 permissions:
@@ -14,13 +14,12 @@ env:
 
 jobs:
   build-apk:
-    name: Build debug and release APK
+    name: Build ARM64 APK
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -28,68 +27,79 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Configure Android SDK (preinstalled on the runner)
+      - name: Configure Android SDK
         run: |
           set -euo pipefail
           SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
-
           SDKM="$(find "$SDK_ROOT/cmdline-tools" -maxdepth 3 -name sdkmanager -type f | head -1)"
-          if [ -z "$SDKM" ]; then
-            echo "::error::sdkmanager not found"
-            exit 1
-          fi
-
+          test -n "$SDKM" || { echo "::error::sdkmanager not found"; exit 1; }
           yes | "$SDKM" --licenses > /dev/null 2>&1 || true
-          "$SDKM" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" || true
-          ls "$SDK_ROOT"
+          "$SDKM" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Download Godot engine and export templates
+      - name: Install Godot and export templates
         run: |
           set -euo pipefail
-          mkdir -p "$HOME/godot"
-          cd "$HOME/godot"
-
+          mkdir -p "$HOME/godot" && cd "$HOME/godot"
           curl -sSL -o godot.zip \
             "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
-          unzip -q godot.zip
-          chmod +x "Godot_v${GODOT_RELEASE}_linux.x86_64"
-
+          unzip -q godot.zip && chmod +x "Godot_v${GODOT_RELEASE}_linux.x86_64"
           curl -sSL -o templates.tpz \
             "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
           mkdir -p "$HOME/.local/share/godot/export_templates"
           unzip -q templates.tpz -d "$HOME/.local/share/godot/export_templates"
           mv "$HOME/.local/share/godot/export_templates/templates" \
-             "$HOME/.local/share/godot/export_templates/${GODOT_TEMPLATES_VERSION}" || true
-
+             "$HOME/.local/share/godot/export_templates/${GODOT_TEMPLATES_VERSION}"
           echo "GODOT_BIN=$HOME/godot/Godot_v${GODOT_RELEASE}_linux.x86_64" >> "$GITHUB_ENV"
 
-      - name: Configure Godot editor settings (Android SDK + Java)
+      - name: Configure Godot editor settings
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.config/godot"
-          cat > "$HOME/.config/godot/editor_settings-4.3.tres" <<EOF
+          cat > "$HOME/.config/godot/editor_settings-4.3.tres" <<TRES
           [gd_resource type="EditorSettings" format=3]
 
           [resource]
           export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
           export/android/java_sdk_path = "$JAVA_HOME"
           export/android/shutdown_adb_on_exit = true
-          EOF
-          ls -R "$HOME/.local/share/godot/export_templates" | head -20
+          TRES
 
       - name: Import project
-        run: |
-          set -euo pipefail
-          "$GODOT_BIN" --headless --path . --import 2>&1 | tail -40
+        run: "$GODOT_BIN" --headless --path . --import 2>&1 | tail -40
 
-      - name: Point export preset to the CI keystores
+      - name: Create signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEYSTORE_USER: ${{ secrets.ANDROID_KEYSTORE_USER }}
         run: |
           set -euo pipefail
-          sed -i "s|res://android/debug.keystore|$PWD/android/debug.keystore|" export_presets.cfg
-          sed -i "s|res://android/release.keystore|$PWD/android/release.keystore|" export_presets.cfg
-          grep -n "keystore/" export_presets.cfg
+          mkdir -p android
+          if [ -n "${KEYSTORE_BASE64:-}" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/release.keystore
+            echo "Using repository keystore secret."
+          else
+            keytool -genkeypair -v -keystore android/release.keystore \
+              -alias saddam -keyalg RSA -keysize 2048 -validity 3650 \
+              -storepass ci-build-only -keypass ci-build-only \
+              -dname "CN=SADDAM BATTLE CI, OU=Build, O=CI, L=NA, ST=NA, C=NA"
+            KEYSTORE_PASSWORD="ci-build-only"
+            KEYSTORE_USER="saddam"
+            echo "No keystore secret found: generated a temporary signing key for this build."
+          fi
+          keytool -genkeypair -v -keystore android/debug.keystore -storepass android \
+            -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 3650 \
+            -dname "CN=Android Debug, O=Android, C=US" >/dev/null 2>&1 || true
+          python3 - "$KEYSTORE_USER" "$KEYSTORE_PASSWORD" <<'PY'
+          import re, sys
+          user, password = sys.argv[1], sys.argv[2]
+          cfg = open("export_presets.cfg").read()
+          cfg = re.sub(r'keystore/release_user="[^"]*"', f'keystore/release_user="{user}"', cfg)
+          cfg = re.sub(r'keystore/release_password="[^"]*"', f'keystore/release_password="{password}"', cfg)
+          open("export_presets.cfg", "w").write(cfg)
+          PY
 
       - name: Export release APK
         run: |
@@ -102,8 +112,12 @@ jobs:
           set -euo pipefail
           ls -lh build/
           test -s build/saddam-battle-release.apk
-          unzip -l build/saddam-battle-release.apk | head -5
-          echo "APK size: $(stat -c%s build/saddam-battle-release.apk) bytes"
+          SIZE=$(stat -c%s build/saddam-battle-release.apk)
+          echo "APK size: $SIZE bytes"
+          test "$SIZE" -gt 5000000
+          unzip -l build/saddam-battle-release.apk | grep -q "lib/arm64-v8a/libgodot_android.so"
+          unzip -l build/saddam-battle-release.apk | grep -q "assets/"
+          echo "APK contains ARM64 native libs and game assets."
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -113,12 +127,11 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Upload export logs on failure
+      - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: export-logs
-          path: |
-            export.log
+          name: build-logs
+          path: export.log
           if-no-files-found: warn
           retention-days: 7
