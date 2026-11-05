@@ -57,17 +57,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.config/godot"
-          cat > "$HOME/.config/godot/editor_settings-4.3.tres" <<TRES
-          [gd_resource type="EditorSettings" format=3]
-
-          [resource]
-          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
-          export/android/java_sdk_path = "$JAVA_HOME"
-          export/android/shutdown_adb_on_exit = true
-          TRES
+          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\nexport/android/shutdown_adb_on_exit = true\n' "$ANDROID_SDK_ROOT" "$JAVA_HOME" > "$HOME/.config/godot/editor_settings-4.3.tres"
+          cat "$HOME/.config/godot/editor_settings-4.3.tres"
 
       - name: Import project
-        run: "$GODOT_BIN" --headless --path . --import 2>&1 | tail -40
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --path . --import 2>&1 | tail -40
 
       - name: Create signing keystore
         env:
@@ -92,14 +88,8 @@ jobs:
           keytool -genkeypair -v -keystore android/debug.keystore -storepass android \
             -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 3650 \
             -dname "CN=Android Debug, O=Android, C=US" >/dev/null 2>&1 || true
-          python3 - "$KEYSTORE_USER" "$KEYSTORE_PASSWORD" <<'PY'
-          import re, sys
-          user, password = sys.argv[1], sys.argv[2]
-          cfg = open("export_presets.cfg").read()
-          cfg = re.sub(r'keystore/release_user="[^"]*"', f'keystore/release_user="{user}"', cfg)
-          cfg = re.sub(r'keystore/release_password="[^"]*"', f'keystore/release_password="{password}"', cfg)
-          open("export_presets.cfg", "w").write(cfg)
-          PY
+          python3 -c "import re,sys; p='export_presets.cfg'; c=open(p).read(); c=re.sub(r'keystore/release_user=\"[^\"]*\"', 'keystore/release_user=\"%s\"' % sys.argv[1], c); c=re.sub(r'keystore/release_password=\"[^\"]*\"', 'keystore/release_password=\"%s\"' % sys.argv[2], c); open(p,'w').write(c)" "$KEYSTORE_USER" "$KEYSTORE_PASSWORD"
+          grep -n "keystore/release_user" export_presets.cfg
 
       - name: Export release APK
         run: |
