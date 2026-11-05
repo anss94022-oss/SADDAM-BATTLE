@@ -378,7 +378,8 @@ func _spawn_vehicles(map_name: String, origin: Vector3) -> void:
 		_:
 			layout = ["car_civilian"]
 
-	var offsets := [Vector3(7, 0.4, -6), Vector3(-8, 0.4, -8), Vector3(12, 0.4, -14)]
+	var offsets := [Vector3(7, 0.4, 8), Vector3(-8, 0.4, 11), Vector3(12, 0.4, 16),
+			Vector3(-14, 0.4, 20), Vector3(0, 0.4, 24)]
 	for index in layout.size():
 		var vehicle_id := String(layout[index])
 		var vehicle := CharacterBody3D.new()

@@ -164,6 +164,10 @@ func _build_meshes() -> void:
 		_build_helicopter_meshes()
 		return
 
+	if vehicle_id in ["car_super", "car_super2"]:
+		_build_supercar(Color(0.06, 0.06, 0.08) if vehicle_id == "car_super" else Color(0.65, 0.05, 0.05))
+		return
+
 	if _build_gltf_model():
 		_build_model_details()
 		return
@@ -268,6 +272,51 @@ func _build_meshes() -> void:
 		_muzzle = Node3D.new()
 		_muzzle.position = Vector3(0, 0, -0.95)
 		mount.add_child(_muzzle)
+
+
+## سيارة خارقة بشكل انسيابي مبني بالمجسمات (بدل الصناديق)
+func _build_supercar(paint: Color) -> void:
+	var glass_color := Color(0.05, 0.07, 0.10)
+	# الهيكل السفلي
+	_box(self, Vector3(1.98, 0.40, 4.40), Vector3(0, 0.46, 0), paint)
+	# مقدمة منخفضة
+	_box(self, Vector3(1.86, 0.26, 1.30), Vector3(0, 0.52, -1.72), paint.darkened(0.06))
+	# مؤخرة مرتفعة
+	_box(self, Vector3(1.94, 0.34, 1.20), Vector3(0, 0.60, 1.62), paint.darkened(0.04))
+	# أقواس العجلات
+	_box(self, Vector3(2.06, 0.30, 1.10), Vector3(0, 0.42, -1.46), paint.darkened(0.10))
+	_box(self, Vector3(2.10, 0.34, 1.20), Vector3(0, 0.44, 1.46), paint.darkened(0.10))
+	# الكابينة الزجاجية المائلة
+	var cabin := _box(self, Vector3(1.46, 0.40, 1.86), Vector3(0, 0.86, 0.15), glass_color)
+	cabin.rotation_degrees = Vector3(0, 0, 0)
+	cabin.material_override = _material(glass_color, 0.0)
+	(cabin.material_override as StandardMaterial3D).roughness = 0.12
+	(cabin.material_override as StandardMaterial3D).metallic = 0.5
+	# سقف
+	_box(self, Vector3(1.30, 0.10, 1.10), Vector3(0, 1.06, 0.18), paint.darkened(0.02))
+	# صاري خلفي وسقف انسيابي
+	_box(self, Vector3(1.52, 0.16, 0.90), Vector3(0, 0.80, 1.24), paint.darkened(0.03))
+	# جنح خلفي
+	_box(self, Vector3(1.96, 0.07, 0.46), Vector3(0, 1.02, 2.02), paint.darkened(0.14))
+	_box(self, Vector3(0.10, 0.26, 0.16), Vector3(-0.62, 0.90, 2.02), Color(0.10, 0.10, 0.12))
+	_box(self, Vector3(0.10, 0.26, 0.16), Vector3(0.62, 0.90, 2.02), Color(0.10, 0.10, 0.12))
+	# مشتت أمامي وألواح جانبية
+	_box(self, Vector3(1.90, 0.08, 0.42), Vector3(0, 0.30, -2.10), Color(0.08, 0.08, 0.09))
+	_box(self, Vector3(2.04, 0.10, 2.60), Vector3(0, 0.28, 0.05), Color(0.08, 0.08, 0.09))
+	# مصابيح أمامية
+	_box(self, Vector3(0.46, 0.10, 0.12), Vector3(-0.62, 0.60, -2.30), Color(1.0, 0.95, 0.85))
+	_box(self, Vector3(0.46, 0.10, 0.12), Vector3(0.62, 0.60, -2.30), Color(1.0, 0.95, 0.85))
+	# مصابيح خلفية مضيئة
+	_box(self, Vector3(1.60, 0.08, 0.08), Vector3(0, 0.72, 2.24), Color(1.0, 0.15, 0.12))
+	# عجلات كبيرة
+	var wheel_radius := 0.46
+	for side in [-1.0, 1.0]:
+		_wheel(Vector3(0.96 * side, wheel_radius, -1.46), wheel_radius, true)
+		_wheel(Vector3(0.98 * side, wheel_radius, 1.46), wheel_radius + 0.03, false)
+
+	_seat_positions = [Vector3(0, 1.05, -0.1), Vector3(0, 1.05, 0.55)]
+	_camera_mode = 0
+	_using_model = false
 
 
 ## تحميل نموذج مركبة حقيقي (Kenney Car Kit — CC0) بدل الصناديق.

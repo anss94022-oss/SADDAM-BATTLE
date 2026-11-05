@@ -688,7 +688,7 @@ func _build_convoy() -> void:
 ## مدينة واسعة: شبكة شوارع بإشارات ورصيف، ناطحات سحاب، أعمدة إضاءة،
 ## مهبط هليكوبتر في الساحة، وسيارات حديثة مركونة.
 func _build_city() -> void:
-	player_spawn = Vector3(0, 1.2, 108)
+	player_spawn = Vector3(0, 1.2, 30)
 	var step := 72.0
 	var road_half := 9.0
 	var block_half := 24.0
