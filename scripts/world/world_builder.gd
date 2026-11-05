@@ -4,6 +4,7 @@ class_name WorldBuilder
 ## طقس (غبار/رياح)، ونقاط انتشار/أغطية/أهداف جاهزة للمهام.
 
 const GROUND_SIZE := 190.0
+var ground_size := GROUND_SIZE
 const TEX := "res://assets/textures/"
 
 var spawn_points: Array = []
@@ -14,6 +15,7 @@ var player_spawn := Vector3(0, 1.2, 20)
 var _materials: Dictionary = {}
 var _props: Array = []
 var _time_of_day := "day"
+var _is_city := false
 var _weather := "clear"
 var _sun: DirectionalLight3D
 var _env: Environment
@@ -23,6 +25,8 @@ var _dust: CPUParticles3D
 func build(map_name: String, time_of_day: String = "day", weather: String = "clear") -> Array:
 	_time_of_day = time_of_day
 	_weather = weather
+	_is_city = map_name == "city"
+	ground_size = 340.0 if _is_city else GROUND_SIZE
 	spawn_points.clear()
 	cover_points.clear()
 	charge_positions.clear()
@@ -47,6 +51,8 @@ func build(map_name: String, time_of_day: String = "day", weather: String = "cle
 			_build_mountain()
 		"convoy":
 			_build_convoy()
+		"city":
+			_build_city()
 		_:
 			_build_training()
 
@@ -120,8 +126,14 @@ func _add_environment() -> void:
 	_env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	_env.ambient_light_color = ambient
 	_env.ambient_light_energy = 0.85 if _time_of_day != "night" else 0.35
+	if _is_city:
+		_env.ambient_light_energy = 0.42 if _time_of_day != "night" else 0.26
 	_env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	_env.tonemap_exposure = 0.78
+	if _is_city:
+		_env.tonemap_exposure = 0.62
+		_env.fog_density = 0.0018
+		_env.fog_light_color = Color(0.66, 0.74, 0.86)
 	_env.glow_enabled = not GameSettings.is_performance()
 	_env.glow_intensity = 0.45
 	_env.ssao_enabled = false
@@ -135,6 +147,16 @@ func _add_environment() -> void:
 	elif _time_of_day == "night":
 		_env.fog_density = 0.012
 
+	# ضبط المدينة: سماء باردة، ضباب خفيف، تعريض أهدأ
+	if _is_city:
+		_env.ambient_light_energy = 1.05 if _time_of_day != "night" else 0.30
+		_env.tonemap_exposure = 0.62
+		_env.fog_density = 0.0016
+		_env.fog_light_color = Color(0.60, 0.68, 0.80)
+		sky_material.sky_top_color = Color(0.16, 0.30, 0.55)
+		sky_material.sky_horizon_color = Color(0.62, 0.70, 0.80)
+		sky_material.ground_horizon_color = Color(0.62, 0.70, 0.80)
+
 	var world_env := WorldEnvironment.new()
 	world_env.environment = _env
 	add_child(world_env)
@@ -147,14 +169,14 @@ func _add_ground(map_name: String) -> void:
 
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = Vector3(GROUND_SIZE, 1.0, GROUND_SIZE)
+	box.size = Vector3(ground_size, 1.0, ground_size)
 	shape.shape = box
 	shape.position = Vector3(0, -0.5, 0)
 	ground.add_child(shape)
 
 	var mesh := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(GROUND_SIZE, GROUND_SIZE)
+	plane.size = Vector2(ground_size, ground_size)
 	plane.subdivide_width = 8
 	plane.subdivide_depth = 8
 	mesh.mesh = plane
@@ -164,6 +186,9 @@ func _add_ground(map_name: String) -> void:
 	match map_name:
 		"factory":
 			texture_name = "asphalt"
+		"city":
+			texture_name = "asphalt"
+			tint = Color(0.33, 0.35, 0.38)
 		"base":
 			texture_name = "sand_rock"
 		"mountain":
@@ -178,7 +203,7 @@ func _add_ground(map_name: String) -> void:
 
 func _add_lighting() -> void:
 	_sun = DirectionalLight3D.new()
-	_sun.shadow_enabled = GameSettings.shadows_enabled
+	_sun.shadow_enabled = GameSettings.shadows_enabled and not _is_city
 	_sun.directional_shadow_max_distance = 110.0
 	_sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if not GameSettings.is_performance() \
 			else DirectionalLight3D.SHADOW_ORTHOGONAL
@@ -196,6 +221,9 @@ func _add_lighting() -> void:
 			_sun.rotation_degrees = Vector3(-52, -58, 0)
 			_sun.light_color = Color(1.0, 0.95, 0.86)
 			_sun.light_energy = 1.15
+			if _is_city:
+				_sun.light_color = Color(0.98, 0.99, 1.0)
+				_sun.light_energy = 1.45
 	add_child(_sun)
 
 
@@ -232,18 +260,18 @@ func _add_weather() -> void:
 
 
 func _add_boundary(map_name: String) -> void:
-	var half := GROUND_SIZE * 0.5 - 2.0
+	var half := ground_size * 0.5 - 2.0
 	var texture := "rock" if map_name == "mountain" else "concrete"
 	var material := _material(texture, 8.0, Color(0.8, 0.78, 0.72))
 	for side in 4:
 		var mesh := MeshInstance3D.new()
 		var box := BoxMesh.new()
-		var size := Vector3(GROUND_SIZE, 14.0, 2.0)
+		var size := Vector3(ground_size, 14.0, 2.0)
 		var position := Vector3.ZERO
 		if side < 2:
 			position = Vector3(0, 7.0, -half if side == 0 else half)
 		else:
-			size = Vector3(2.0, 14.0, GROUND_SIZE)
+			size = Vector3(2.0, 14.0, ground_size)
 			position = Vector3(-half if side == 2 else half, 7.0, 0)
 		box.size = size
 		mesh.mesh = box
@@ -654,6 +682,274 @@ func _build_convoy() -> void:
 
 	charge_positions = [Vector3(-12, 0, -20), Vector3(12, 0, -4), Vector3(0, 0, 14)]
 	hostage_positions = [Vector3(-10, 0, -8), Vector3(10, 0, -8), Vector3(0, 0, -16)]
+
+
+# ------------------------------------------------------------- المدينة
+## مدينة واسعة: شبكة شوارع بإشارات ورصيف، ناطحات سحاب، أعمدة إضاءة،
+## مهبط هليكوبتر في الساحة، وسيارات حديثة مركونة.
+func _build_city() -> void:
+	player_spawn = Vector3(0, 1.2, 132)
+	var step := 72.0
+	var road_half := 9.0
+	var block_half := 24.0
+
+	# ---- أرصفة وأحواض المباني ----
+	for gx in range(-2, 3):
+		for gz in range(-2, 3):
+			var cx := float(gx) * step
+			var cz := float(gz) * step
+			var is_center := gx == 0 and gz == 0
+			if is_center:
+				continue
+			# رصيف مرتفع
+			_prop_box(Vector3(cx, 0.12, cz), Vector3(block_half * 2.0, 0.24, block_half * 2.0),
+					"concrete", Color(0.30, 0.32, 0.34), 6.0, false)
+			_build_city_block(Vector3(cx, 0.0, cz), block_half * 0.82)
+
+	# ---- الساحة الوسطى + مهبط هليكوبتر ----
+	_prop_box(Vector3(0, 0.10, 0), Vector3(block_half * 2.0, 0.20, block_half * 2.0),
+			"concrete", Color(0.28, 0.30, 0.32), 6.0, false)
+	var pad := MeshInstance3D.new()
+	var pad_mesh := CylinderMesh.new()
+	pad_mesh.top_radius = 11.0
+	pad_mesh.bottom_radius = 11.0
+	pad_mesh.height = 0.25
+	pad.mesh = pad_mesh
+	pad.position = Vector3(0, 0.16, 0)
+	pad.material_override = _material("asphalt", 2.0, Color(0.20, 0.22, 0.24))
+	add_child(pad)
+	_helipad_marking(Vector3(0, 0.30, 0))
+	_helicopter_prop(Vector3(0, 0.3, 0))
+	spawn_points.append(Vector3(0, 1.0, -14))
+	spawn_points.append(Vector3(-16, 1.0, 8))
+	spawn_points.append(Vector3(16, 1.0, -8))
+
+	# ---- لوحات الطرق وخطوط المسارات ----
+	for lane in range(-2, 3):
+		var lane_x := float(lane) * step
+		for index in 40:
+			var z := -150.0 + float(index) * 7.5
+			if absf(lane_x) < 1.0 and z > -30.0 and z < 30.0:
+				continue
+			_prop_box(Vector3(lane_x, 0.06, z), Vector3(0.5, 0.06, 3.2), "concrete",
+					Color(0.92, 0.90, 0.86), 1.0, false)
+		for index2 in 40:
+			var x := -150.0 + float(index2) * 7.5
+			if absf(lane_x) < 1.0 and absf(x) < 30.0:
+				continue
+			_prop_box(Vector3(x, 0.06, lane_x), Vector3(3.2, 0.06, 0.5), "concrete",
+					Color(0.92, 0.90, 0.86), 1.0, false)
+
+	# ---- أعمدة إضاءة عند التقاطعات ----
+	for gx in range(-2, 3):
+		for gz in range(-2, 3):
+			var lx := float(gx) * step + road_half + 2.0
+			var lz := float(gz) * step + road_half + 2.0
+			_street_lamp(Vector3(lx, 0, lz))
+
+	# ---- سيارات مركونة على الأرصفة ----
+	var parked := [
+		[Vector3(20, 0.3, -46), 0.0], [Vector3(-24, 0.3, -46), 0.0],
+		[Vector3(24, 0.3, 50), PI], [Vector3(-22, 0.3, 52), PI],
+		[Vector3(74, 0.3, 18), PI * 0.5], [Vector3(-76, 0.3, -20), PI * 0.5]
+	]
+	for car in parked:
+		_vehicle_prop(car[0], car[1])
+
+	# ---- مبانٍ جانبية متوسطة لإغلاق الأفق ----
+	for index3 in 10:
+		var angle := TAU * float(index3) / 10.0
+		var radius := 168.0
+		_building(Vector3(cos(angle) * radius, 14.0, sin(angle) * radius),
+				Vector3(24, 28, 24), "concrete", "concrete", Color(0.22, 0.25, 0.30),
+				angle)
+
+	charge_positions = [Vector3(-30, 0, -30), Vector3(30, 0, 20), Vector3(0, 0, 44)]
+	hostage_positions = [Vector3(-12, 0, 0), Vector3(12, 0, 6), Vector3(0, 0, 18)]
+	spawn_points.append(Vector3(-40, 1.0, -60))
+	spawn_points.append(Vector3(44, 1.0, -58))
+	spawn_points.append(Vector3(-46, 1.0, 44))
+	spawn_points.append(Vector3(48, 1.0, 40))
+
+
+func _build_city_block(center: Vector3, span: float) -> void:
+	var towers := randi_range(2, 4)
+	for index in towers:
+		var offset := Vector3(randf_range(-span * 0.5, span * 0.5), 0,
+				randf_range(-span * 0.5, span * 0.5))
+		var size := Vector3(randf_range(12.0, 20.0), 0, randf_range(12.0, 20.0))
+		var height := randf_range(26.0, 78.0)
+		if randi() % 4 == 0:
+			height = randf_range(70.0, 110.0)
+		var tint := Color(0.34, 0.38, 0.44).lerp(Color(0.12, 0.14, 0.18), randf() * 0.7)
+		_building(center + offset + Vector3(0, height * 0.5 + 0.24, 0),
+				Vector3(size.x, height, size.z), "concrete", "concrete", tint,
+				randf_range(-0.12, 0.12))
+		# شرائط نوافذ زجاجية
+		var strips := int(height / 4.0)
+		for strip in range(1, strips):
+			var y := 0.24 + float(strip) * 4.0
+			if y > height + 0.24:
+				break
+			var band := MeshInstance3D.new()
+			var band_mesh := BoxMesh.new()
+			band_mesh.size = Vector3(size.x + 0.12, 1.3, size.z + 0.12)
+			band.mesh = band_mesh
+			band.position = center + offset + Vector3(0, y, 0)
+			var glass := StandardMaterial3D.new()
+			glass.albedo_color = Color(0.10, 0.16, 0.24, 0.85)
+			glass.metallic = 0.6
+			glass.roughness = 0.18
+			glass.emission_enabled = _time_of_day != "day"
+			glass.emission = Color(1.0, 0.85, 0.55)
+			glass.emission_energy_multiplier = 0.4 if _time_of_day != "day" else 0.0
+			band.material_override = glass
+			add_child(band)
+
+
+func _street_lamp(position: Vector3) -> void:
+	var pole := MeshInstance3D.new()
+	var pole_mesh := CylinderMesh.new()
+	pole_mesh.top_radius = 0.12
+	pole_mesh.bottom_radius = 0.18
+	pole_mesh.height = 8.0
+	pole.mesh = pole_mesh
+	pole.position = position + Vector3(0, 4.0, 0)
+	pole.material_override = _material("metal", 1.0, Color(0.28, 0.30, 0.32))
+	add_child(pole)
+
+	var head := MeshInstance3D.new()
+	var head_mesh := BoxMesh.new()
+	head_mesh.size = Vector3(1.8, 0.22, 0.7)
+	head.mesh = head_mesh
+	head.position = position + Vector3(0, 8.05, 0)
+	head.material_override = _material("metal", 1.0, Color(0.85, 0.82, 0.72))
+	add_child(head)
+
+	if _time_of_day != "day":
+		var lamp := OmniLight3D.new()
+		lamp.light_color = Color(1.0, 0.88, 0.62)
+		lamp.light_energy = 2.4
+		lamp.omni_range = 22.0
+		lamp.position = position + Vector3(0, 7.6, 0)
+		add_child(lamp)
+	cover_points.append(position + Vector3(1.4, 0, 0))
+
+
+func _helipad_marking(position: Vector3) -> void:
+	var ring := MeshInstance3D.new()
+	var ring_mesh := CylinderMesh.new()
+	ring_mesh.top_radius = 9.0
+	ring_mesh.bottom_radius = 9.0
+	ring_mesh.height = 0.08
+	ring.mesh = ring_mesh
+	ring.position = position
+	ring.material_override = _material("concrete", 1.0, Color(0.95, 0.75, 0.18))
+	add_child(ring)
+	var inner := MeshInstance3D.new()
+	var inner_mesh := CylinderMesh.new()
+	inner_mesh.top_radius = 8.3
+	inner_mesh.bottom_radius = 8.3
+	inner_mesh.height = 0.10
+	inner.mesh = inner_mesh
+	inner.position = position + Vector3(0, 0.02, 0)
+	inner.material_override = _material("asphalt", 1.0, Color(0.14, 0.15, 0.17))
+	add_child(inner)
+
+	for side in 2:
+		var bar := MeshInstance3D.new()
+		var bar_mesh := BoxMesh.new()
+		bar_mesh.size = Vector3(0.9, 0.05, 6.0)
+		bar.mesh = bar_mesh
+		bar.position = position + Vector3(-2.0 if side == 0 else 2.0, 0.05, 0)
+		bar.material_override = _material("concrete", 1.0, Color(0.95, 0.95, 0.92))
+		add_child(bar)
+	var cross := MeshInstance3D.new()
+	var cross_mesh := BoxMesh.new()
+	cross_mesh.size = Vector3(5.0, 0.05, 0.9)
+	cross.mesh = cross_mesh
+	cross.position = position + Vector3(0, 0.05, 0)
+	cross.material_override = _material("concrete", 1.0, Color(0.95, 0.95, 0.92))
+	add_child(cross)
+
+
+func _helicopter_prop(position: Vector3) -> void:
+	var root := Node3D.new()
+	root.position = position
+	add_child(root)
+
+	var body := MeshInstance3D.new()
+	var body_mesh := CapsuleMesh.new()
+	body_mesh.radius = 1.15
+	body_mesh.height = 4.4
+	body.mesh = body_mesh
+	body.rotation.x = PI * 0.5
+	body.position = Vector3(0, 1.4, 0)
+	body.material_override = _material("metal", 1.0, Color(0.16, 0.18, 0.20))
+	root.add_child(body)
+
+	var glass := MeshInstance3D.new()
+	var glass_mesh := SphereMesh.new()
+	glass_mesh.radius = 1.02
+	glass_mesh.height = 1.7
+	glass.mesh = glass_mesh
+	glass.position = Vector3(0, 1.62, -1.05)
+	glass.material_override = _material("metal", 1.0, Color(0.12, 0.18, 0.24))
+	root.add_child(glass)
+
+	var tail := MeshInstance3D.new()
+	var tail_mesh := BoxMesh.new()
+	tail_mesh.size = Vector3(0.35, 0.35, 4.2)
+	tail.mesh = tail_mesh
+	tail.position = Vector3(0, 1.55, 3.0)
+	tail.material_override = _material("metal", 1.0, Color(0.16, 0.18, 0.20))
+	root.add_child(tail)
+
+	var fin := MeshInstance3D.new()
+	var fin_mesh := BoxMesh.new()
+	fin_mesh.size = Vector3(0.2, 1.5, 0.9)
+	fin.mesh = fin_mesh
+	fin.position = Vector3(0, 2.2, 5.0)
+	fin.material_override = _material("metal", 1.0, Color(0.16, 0.18, 0.20))
+	root.add_child(fin)
+
+	var skid := Node3D.new()
+	root.add_child(skid)
+	for side in 2:
+		var runner := MeshInstance3D.new()
+		var runner_mesh := BoxMesh.new()
+		runner_mesh.size = Vector3(0.12, 0.12, 3.0)
+		runner.mesh = runner_mesh
+		runner.position = Vector3(-0.85 if side == 0 else 0.85, 0.12, 0)
+		runner.material_override = _material("metal", 1.0, Color(0.2, 0.2, 0.22))
+		skid.add_child(runner)
+
+	var rotor := MeshInstance3D.new()
+	var rotor_mesh := BoxMesh.new()
+	rotor_mesh.size = Vector3(9.0, 0.06, 0.5)
+	rotor.mesh = rotor_mesh
+	rotor.position = Vector3(0, 2.55, 0)
+	rotor.material_override = _material("metal", 1.0, Color(0.12, 0.12, 0.14))
+	root.add_child(rotor)
+
+	var rotor2 := MeshInstance3D.new()
+	var rotor2_mesh := BoxMesh.new()
+	rotor2_mesh.size = Vector3(0.5, 0.06, 9.0)
+	rotor2.mesh = rotor2_mesh
+	rotor2.position = Vector3(0, 2.55, 0)
+	rotor2.material_override = _material("metal", 1.0, Color(0.12, 0.12, 0.14))
+	root.add_child(rotor2)
+
+	var body_shape := StaticBody3D.new()
+	body_shape.collision_layer = 1
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(2.4, 2.6, 8.6)
+	shape.shape = box
+	body_shape.add_child(shape)
+	body_shape.position = Vector3(0, 1.5, 1.6)
+	root.add_child(body_shape)
+	cover_points.append(position + Vector3(2.0, 0, 0))
 
 
 # --------------------------------------------------------------- استعلامات

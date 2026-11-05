@@ -38,7 +38,7 @@ const ACHIEVEMENTS := [
 	["collector", "ach_collector_name", "ach_collector_desc"]
 ]
 
-const MAPS := ["village", "base", "factory", "mountain", "convoy", "training"]
+const MAPS := ["city", "village", "base", "factory", "mountain", "convoy", "training"]
 
 var _panels: Dictionary = {}
 var _current := "main"

@@ -246,5 +246,9 @@
   "touch_autofire": "إطلاق تلقائي",
   "touch_view": "منظور",
   "hud_radar": "رادار",
-  "touch_scope": "تقريب"
+  "touch_scope": "تقريب",
+  "v_car_super": "سيارة خارقة (Bugatti)",
+  "v_car_super2": "سيارة رياضية (Ferrari)",
+  "m13_name": "معركة المدينة",
+  "m13_brief": "نظّف وسط المدينة من المسلحين وتحرّك بين ناطحات السحاب."
 }

@@ -31,7 +31,7 @@ func _ready() -> void:
 		file.close()
 		if typeof(parsed) == TYPE_DICTIONARY and parsed.has("campaign"):
 			missions = parsed["campaign"]
-	_check(missions.size() == 12, "12 campaign missions (got %d)" % missions.size())
+	_check(missions.size() >= 12, "campaign missions loaded (%d, expected 12+)" % missions.size())
 
 	var objective_types := {}
 	for mission in missions:

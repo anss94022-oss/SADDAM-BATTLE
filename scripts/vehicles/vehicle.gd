@@ -62,6 +62,8 @@ var _using_model := false
 const MODEL_MAP := {
 	"car_4x4": "suv",
 	"car_civilian": "sedan",
+	"car_super": "race",
+	"car_super2": "hatchback-sports",
 	"truck_transport": "truck",
 	"truck_supply": "truck-flat",
 	"armored_apc": "van",

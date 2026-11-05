@@ -145,12 +145,10 @@ func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("switch_view"):
 		player.toggle_view_mode()
 
-	# اهتزاز الكاميرا بعد الانفجارات
-	if _shake > 0.0 and player.camera != null:
-		_shake = maxf(0.0, _shake - delta * 2.6)
-		var offset := Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * _shake * 0.09
-		player.camera.h_offset = offset.x
-		player.camera.v_offset = offset.y
+	# ثبات الكاميرا: أزل أي إزاحة متبقية بدل الاهتزاز
+	if player.camera != null:
+		player.camera.h_offset = 0.0
+		player.camera.v_offset = 0.0
 
 
 func _touch_mode() -> bool:
@@ -362,6 +360,8 @@ func _spawn_vehicles(map_name: String, origin: Vector3) -> void:
 			layout = ["recon_buggy", "bike_military"]
 		"convoy":
 			layout = ["technicals", "truck_transport"]
+		"city":
+			layout = ["car_super", "car_super2", "car_civilian", "heli_transport"]
 		_:
 			layout = ["car_civilian"]
 

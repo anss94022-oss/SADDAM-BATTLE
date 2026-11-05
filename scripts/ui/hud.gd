@@ -411,13 +411,14 @@ func _build_touch_controls() -> void:
 
 	for name in TOUCH_BUTTONS:
 		var button := Button.new()
-		button.text = Loc.t(String(BUTTON_LABELS.get(name, name)))
+		button.text = ""
 		button.focus_mode = Control.FOCUS_NONE
 		var base_size := float(TOUCH_SIZES.get(name, TOUCH_BASE_SIZE))
 		button.size = Vector2(base_size, base_size)
 		button.set_meta("touch_name", name)
 		_style_button(button, name in ["fire", "aim"], name)
 		_connect_button(button, name)
+		button.draw.connect(func(): _draw_touch_icon(button, name))
 		_touch_layer.add_child(button)
 		_buttons[name] = button
 
@@ -431,25 +432,88 @@ func _build_touch_controls() -> void:
 
 func _style_button(button: Button, primary: bool, name: String = "") -> void:
 	var normal := StyleBoxFlat.new()
-	# زر الإطلاق أوضح وأخضر خفيف ليكون هو المرجع البصري لليد اليمنى
-	if name == "fire":
-		normal.bg_color = Color(0.10, 0.35, 0.20, 0.55)
-		normal.border_color = Color(0.55, 1.0, 0.70, 0.95)
-	elif primary:
-		normal.bg_color = Color(0.06, 0.22, 0.34, 0.52)
-		normal.border_color = Color(0.72, 0.90, 1.0, 0.90)
-	else:
-		normal.bg_color = Color(0.04, 0.09, 0.14, 0.48)
-		normal.border_color = Color(0.72, 0.86, 0.98, 0.75)
-	normal.set_border_width_all(3 if primary else 2)
+	normal.bg_color = Color(0.02, 0.03, 0.05, 0.42 if primary else 0.34)
+	normal.border_color = Color(1.0, 1.0, 1.0, 0.20 if primary else 0.14)
+	normal.set_border_width_all(2)
 	var radius := int((TOUCH_SIZES.get(name, TOUCH_BASE_SIZE)) * 0.5)
 	normal.set_corner_radius_all(radius)
 	var pressed_style := normal.duplicate() as StyleBoxFlat
-	pressed_style.bg_color = Color(0.32, 0.75, 1.0, 0.85)
+	pressed_style.bg_color = Color(1.0, 1.0, 1.0, 0.30)
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", normal)
 	button.add_theme_stylebox_override("pressed", pressed_style)
-	button.add_theme_font_size_override("font_size", int(TOUCH_FONTS.get(name, 18)))
+	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+
+
+func _draw_touch_icon(button: Button, icon: String) -> void:
+	var s2: Vector2 = button.size
+	var c := s2 * 0.5
+	var r := minf(s2.x, s2.y) * 0.5
+	var white := Color(1.0, 1.0, 1.0, 0.92)
+	var thick := maxf(2.0, r * 0.075)
+	match icon:
+		"fire":
+			button.draw_arc(c, r * 0.36, 0, TAU, 32, Color(1, 1, 1, 0.35), thick * 0.7)
+			for offset in [Vector2(0, -1), Vector2(0, 1), Vector2(-1, 0), Vector2(1, 0)]:
+				var d: Vector2 = offset
+				button.draw_line(c + d * r * 0.46, c + d * r * 0.72, white, thick)
+			button.draw_circle(c, r * 0.10, white)
+		"aim":
+			button.draw_arc(c, r * 0.44, 0, TAU, 36, white, thick * 0.8)
+			button.draw_line(c + Vector2(-r * 0.62, 0), c + Vector2(-r * 0.30, 0), white, thick * 0.8)
+			button.draw_line(c + Vector2(r * 0.30, 0), c + Vector2(r * 0.62, 0), white, thick * 0.8)
+			button.draw_line(c + Vector2(0, -r * 0.62), c + Vector2(0, -r * 0.30), white, thick * 0.8)
+			button.draw_line(c + Vector2(0, r * 0.30), c + Vector2(0, r * 0.62), white, thick * 0.8)
+			button.draw_circle(c, r * 0.09, white)
+		"jump":
+			button.draw_line(c + Vector2(0, r * 0.50), c + Vector2(0, -r * 0.44), white, thick)
+			button.draw_line(c + Vector2(0, -r * 0.44), c + Vector2(-r * 0.26, -r * 0.14), white, thick)
+			button.draw_line(c + Vector2(0, -r * 0.44), c + Vector2(r * 0.26, -r * 0.14), white, thick)
+		"reload":
+			button.draw_arc(c, r * 0.40, deg_to_rad(-50), deg_to_rad(215), 28, white, thick)
+			var tip := c + Vector2(r * 0.40, 0).rotated(deg_to_rad(-50))
+			button.draw_colored_polygon(PackedVector2Array([
+				tip + Vector2(-r * 0.12, -r * 0.16),
+				tip + Vector2(r * 0.16, r * 0.06),
+				tip + Vector2(-r * 0.16, r * 0.10)
+			]), white)
+		"weapon":
+			button.draw_line(c + Vector2(-r * 0.44, -r * 0.16), c + Vector2(r * 0.42, -r * 0.16), white, thick * 0.85)
+			button.draw_line(c + Vector2(-r * 0.44, r * 0.16), c + Vector2(r * 0.42, r * 0.16), white, thick * 0.85)
+			button.draw_colored_polygon(PackedVector2Array([
+				c + Vector2(r * 0.42, -r * 0.34), c + Vector2(r * 0.62, -r * 0.16), c + Vector2(r * 0.42, r * 0.02)
+			]), white)
+			button.draw_colored_polygon(PackedVector2Array([
+				c + Vector2(-r * 0.44, -r * 0.02), c + Vector2(-r * 0.64, r * 0.16), c + Vector2(-r * 0.44, r * 0.34)
+			]), white)
+		"grenade":
+			button.draw_circle(c + Vector2(0, r * 0.08), r * 0.30, Color(1, 1, 1, 0.85))
+			button.draw_line(c + Vector2(0, -r * 0.22), c + Vector2(0, -r * 0.44), white, thick * 0.8)
+			button.draw_line(c + Vector2(r * 0.10, -r * 0.40), c + Vector2(r * 0.30, -r * 0.46), white, thick * 0.7)
+		"heal":
+			button.draw_rect(Rect2(c + Vector2(-r * 0.10, -r * 0.36), Vector2(r * 0.20, r * 0.72)), white)
+			button.draw_rect(Rect2(c + Vector2(-r * 0.36, -r * 0.10), Vector2(r * 0.72, r * 0.20)), white)
+		"crouch":
+			button.draw_circle(c + Vector2(-r * 0.16, -r * 0.34), r * 0.13, white)
+			button.draw_line(c + Vector2(-r * 0.16, -r * 0.20), c + Vector2(-r * 0.10, r * 0.10), white, thick)
+			button.draw_line(c + Vector2(-r * 0.10, r * 0.10), c + Vector2(r * 0.30, r * 0.24), white, thick)
+			button.draw_line(c + Vector2(-r * 0.16, -r * 0.06), c + Vector2(r * 0.22, -r * 0.10), white, thick)
+		"interact":
+			button.draw_arc(c, r * 0.40, deg_to_rad(-40), deg_to_rad(40), 16, Color(1, 1, 1, 0.25), thick * 0.7)
+			button.draw_circle(c, r * 0.16, Color(1, 1, 1, 0.85))
+		"camera":
+			button.draw_rect(Rect2(c + Vector2(-r * 0.40, -r * 0.24), Vector2(r * 0.80, r * 0.50)), Color(1, 1, 1, 0.85),
+					false, thick)
+			button.draw_circle(c + Vector2(0, r * 0.02), r * 0.13, Color(1, 1, 1, 0.85))
+		"autofire":
+			button.draw_arc(c, r * 0.34, 0, TAU, 24, Color(1, 1, 1, 0.75), thick * 0.8)
+			button.draw_circle(c, r * 0.10, white)
+			button.draw_line(c + Vector2(-r * 0.45, -r * 0.30), c + Vector2(-r * 0.20, -r * 0.12), Color(1, 1, 1, 0.7), thick * 0.7)
+		"view":
+			button.draw_arc(c, r * 0.30, 0, TAU, 24, Color(1, 1, 1, 0.80), thick * 0.8)
+			button.draw_circle(c, r * 0.09, white)
+			button.draw_line(c + Vector2(-r * 0.46, 0), c + Vector2(-r * 0.28, 0), Color(1, 1, 1, 0.6), thick * 0.7)
+			button.draw_line(c + Vector2(r * 0.28, 0), c + Vector2(r * 0.46, 0), Color(1, 1, 1, 0.6), thick * 0.7)
 
 
 func _connect_button(button: Button, name: String) -> void:
@@ -535,7 +599,8 @@ func _apply_positions() -> void:
 func refresh_layout() -> void:
 	_apply_positions()
 	for name in _buttons.keys():
-		(_buttons[name] as Button).text = Loc.t(String(BUTTON_LABELS.get(name, name)))
+		(_buttons[name] as Button).text = ""
+		(_buttons[name] as Button).queue_redraw()
 
 
 func resize_layout(viewport_size: Vector2) -> void:
@@ -904,7 +969,8 @@ func set_edit_mode(value: bool) -> void:
 
 func _refresh_button_labels() -> void:
 	for name in _buttons.keys():
-		(_buttons[name] as Button).text = Loc.t(String(BUTTON_LABELS.get(name, name)))
+		(_buttons[name] as Button).text = ""
+		(_buttons[name] as Button).tooltip_text = Loc.t(String(BUTTON_LABELS.get(name, name)))
 
 
 func _handle_edit_input(event: InputEvent) -> void:

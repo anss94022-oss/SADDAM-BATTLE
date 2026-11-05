@@ -246,5 +246,9 @@
   "touch_autofire": "Auto Fire",
   "touch_view": "View",
   "hud_radar": "Radar",
-  "touch_scope": "Zoom"
+  "touch_scope": "Zoom",
+  "v_car_super": "Hypercar (Bugatti)",
+  "v_car_super2": "Sports Car (Ferrari)",
+  "m13_name": "City Battle",
+  "m13_brief": "Clear the downtown area of hostiles between the skyscrapers."
 }

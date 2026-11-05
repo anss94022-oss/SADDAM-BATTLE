@@ -27,6 +27,29 @@ func _ready() -> void:
 		main.menu.show_settings()
 		for _i in 30:
 			await get_tree().process_frame
+	elif mode == "city":
+		main.menu.hide_all()
+		var world_script = load("res://scripts/world/world_builder.gd")
+		var world = world_script.new()
+		add_child(world)
+		world.call("build", "city", "day", "clear")
+		var cam := Camera3D.new()
+		cam.fov = 62.0
+		cam.position = Vector3(0.0, 6.2, 52.0)
+		cam.rotation_degrees = Vector3(-3.0, 0.0, 0.0)
+		add_child(cam)
+		cam.make_current()
+		for spec in [[Vector3(-9, 0.2, 34), 0.15, "car_super"],
+				[Vector3(9, 0.2, 33), PI - 0.1, "car_super2"],
+				[Vector3(-16, 0.2, 44), PI * 0.5, "car_civilian"]]:
+			var car := CharacterBody3D.new()
+			car.set_script(load("res://scripts/vehicles/vehicle.gd"))
+			car.set("vehicle_id", String(spec[2]))
+			add_child(car)
+			car.global_position = spec[0]
+			car.rotation.y = float(spec[1])
+		for _i in 45:
+			await get_tree().process_frame
 	elif mode == "missions":
 		main.menu.show_main()
 		main.menu.show_missions()

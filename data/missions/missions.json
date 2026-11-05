@@ -8,10 +8,20 @@
       "map": "training",
       "time_of_day": "day",
       "weather": "clear",
-      "objective": {"type": "eliminate_all"},
+      "objective": {
+        "type": "eliminate_all"
+      },
       "enemies": [
-        {"archetype": "rifleman", "count": 4, "difficulty": 0.45},
-        {"archetype": "scout", "count": 1, "difficulty": 0.4}
+        {
+          "archetype": "rifleman",
+          "count": 4,
+          "difficulty": 0.45
+        },
+        {
+          "archetype": "scout",
+          "count": 1,
+          "difficulty": 0.4
+        }
       ],
       "time_limit": 0,
       "reward_xp": 150,
@@ -26,10 +36,20 @@
       "map": "village",
       "time_of_day": "day",
       "weather": "clear",
-      "objective": {"type": "eliminate_all"},
+      "objective": {
+        "type": "eliminate_all"
+      },
       "enemies": [
-        {"archetype": "rifleman", "count": 5, "difficulty": 0.5},
-        {"archetype": "scout", "count": 2, "difficulty": 0.5}
+        {
+          "archetype": "rifleman",
+          "count": 5,
+          "difficulty": 0.5
+        },
+        {
+          "archetype": "scout",
+          "count": 2,
+          "difficulty": 0.5
+        }
       ],
       "time_limit": 0,
       "reward_xp": 190,
@@ -44,11 +64,25 @@
       "map": "village",
       "time_of_day": "dusk",
       "weather": "wind",
-      "objective": {"type": "eliminate_all"},
+      "objective": {
+        "type": "eliminate_all"
+      },
       "enemies": [
-        {"archetype": "rifleman", "count": 6, "difficulty": 0.55},
-        {"archetype": "scout", "count": 3, "difficulty": 0.55},
-        {"archetype": "gunner", "count": 1, "difficulty": 0.55}
+        {
+          "archetype": "rifleman",
+          "count": 6,
+          "difficulty": 0.55
+        },
+        {
+          "archetype": "scout",
+          "count": 3,
+          "difficulty": 0.55
+        },
+        {
+          "archetype": "gunner",
+          "count": 1,
+          "difficulty": 0.55
+        }
       ],
       "time_limit": 0,
       "reward_xp": 230,
@@ -66,12 +100,27 @@
       "objective": {
         "type": "rescue_hostages",
         "hostages": 3,
-        "extraction": [0, 34]
+        "extraction": [
+          0,
+          34
+        ]
       },
       "enemies": [
-        {"archetype": "rifleman", "count": 5, "difficulty": 0.55},
-        {"archetype": "scout", "count": 2, "difficulty": 0.6},
-        {"archetype": "gunner", "count": 1, "difficulty": 0.55}
+        {
+          "archetype": "rifleman",
+          "count": 5,
+          "difficulty": 0.55
+        },
+        {
+          "archetype": "scout",
+          "count": 2,
+          "difficulty": 0.6
+        },
+        {
+          "archetype": "gunner",
+          "count": 1,
+          "difficulty": 0.55
+        }
       ],
       "time_limit": 300,
       "reward_xp": 280,
@@ -88,13 +137,42 @@
       "weather": "dust",
       "objective": {
         "type": "escort_convoy",
-        "route": [[0, -40], [0, -10], [8, 18], [0, 44]],
+        "route": [
+          [
+            0,
+            -40
+          ],
+          [
+            0,
+            -10
+          ],
+          [
+            8,
+            18
+          ],
+          [
+            0,
+            44
+          ]
+        ],
         "speed": 6.5
       },
       "enemies": [
-        {"archetype": "rifleman", "count": 6, "difficulty": 0.6},
-        {"archetype": "rocketeer", "count": 1, "difficulty": 0.55},
-        {"archetype": "scout", "count": 2, "difficulty": 0.6}
+        {
+          "archetype": "rifleman",
+          "count": 6,
+          "difficulty": 0.6
+        },
+        {
+          "archetype": "rocketeer",
+          "count": 1,
+          "difficulty": 0.55
+        },
+        {
+          "archetype": "scout",
+          "count": 2,
+          "difficulty": 0.6
+        }
       ],
       "time_limit": 0,
       "reward_xp": 320,
@@ -111,17 +189,37 @@
       "weather": "clear",
       "objective": {
         "type": "capture_zone",
-        "zone": [0, -4],
+        "zone": [
+          0,
+          -4
+        ],
         "radius": 11.0,
         "hold_time": 50.0
       },
       "enemies": [
-        {"archetype": "rifleman", "count": 6, "difficulty": 0.65},
-        {"archetype": "gunner", "count": 2, "difficulty": 0.6},
-        {"archetype": "sniper", "count": 1, "difficulty": 0.6}
+        {
+          "archetype": "rifleman",
+          "count": 6,
+          "difficulty": 0.65
+        },
+        {
+          "archetype": "gunner",
+          "count": 2,
+          "difficulty": 0.6
+        },
+        {
+          "archetype": "sniper",
+          "count": 1,
+          "difficulty": 0.6
+        }
       ],
       "reinforcements": [
-        {"at_seconds": 40, "archetype": "scout", "count": 2, "difficulty": 0.65}
+        {
+          "at_seconds": 40,
+          "archetype": "scout",
+          "count": 2,
+          "difficulty": 0.65
+        }
       ],
       "time_limit": 0,
       "reward_xp": 360,
@@ -136,14 +234,33 @@
       "map": "base",
       "time_of_day": "day",
       "weather": "wind",
-      "objective": {"type": "eliminate_all"},
+      "objective": {
+        "type": "eliminate_all"
+      },
       "enemies": [
-        {"archetype": "rifleman", "count": 7, "difficulty": 0.65},
-        {"archetype": "gunner", "count": 2, "difficulty": 0.65},
-        {"archetype": "officer", "count": 1, "difficulty": 0.65}
+        {
+          "archetype": "rifleman",
+          "count": 7,
+          "difficulty": 0.65
+        },
+        {
+          "archetype": "gunner",
+          "count": 2,
+          "difficulty": 0.65
+        },
+        {
+          "archetype": "officer",
+          "count": 1,
+          "difficulty": 0.65
+        }
       ],
       "reinforcements": [
-        {"at_seconds": 60, "archetype": "scout", "count": 3, "difficulty": 0.65}
+        {
+          "at_seconds": 60,
+          "archetype": "scout",
+          "count": 3,
+          "difficulty": 0.65
+        }
       ],
       "time_limit": 0,
       "reward_xp": 400,
@@ -165,9 +282,21 @@
         "interact_range": 3.2
       },
       "enemies": [
-        {"archetype": "rifleman", "count": 7, "difficulty": 0.7},
-        {"archetype": "scout", "count": 3, "difficulty": 0.7},
-        {"archetype": "gunner", "count": 2, "difficulty": 0.7}
+        {
+          "archetype": "rifleman",
+          "count": 7,
+          "difficulty": 0.7
+        },
+        {
+          "archetype": "scout",
+          "count": 3,
+          "difficulty": 0.7
+        },
+        {
+          "archetype": "gunner",
+          "count": 2,
+          "difficulty": 0.7
+        }
       ],
       "time_limit": 420,
       "reward_xp": 450,
@@ -188,9 +317,22 @@
       },
       "player_weapon": "sniper",
       "enemies": [
-        {"archetype": "sniper", "count": 2, "difficulty": 0.7},
-        {"archetype": "rifleman", "count": 6, "difficulty": 0.7},
-        {"archetype": "officer", "count": 3, "difficulty": 0.7, "marked": true}
+        {
+          "archetype": "sniper",
+          "count": 2,
+          "difficulty": 0.7
+        },
+        {
+          "archetype": "rifleman",
+          "count": 6,
+          "difficulty": 0.7
+        },
+        {
+          "archetype": "officer",
+          "count": 3,
+          "difficulty": 0.7,
+          "marked": true
+        }
       ],
       "time_limit": 360,
       "reward_xp": 500,
@@ -205,15 +347,38 @@
       "map": "mountain",
       "time_of_day": "night",
       "weather": "wind",
-      "objective": {"type": "eliminate_all"},
+      "objective": {
+        "type": "eliminate_all"
+      },
       "enemies": [
-        {"archetype": "rifleman", "count": 8, "difficulty": 0.75},
-        {"archetype": "scout", "count": 4, "difficulty": 0.75},
-        {"archetype": "sniper", "count": 2, "difficulty": 0.75},
-        {"archetype": "gunner", "count": 2, "difficulty": 0.75}
+        {
+          "archetype": "rifleman",
+          "count": 8,
+          "difficulty": 0.75
+        },
+        {
+          "archetype": "scout",
+          "count": 4,
+          "difficulty": 0.75
+        },
+        {
+          "archetype": "sniper",
+          "count": 2,
+          "difficulty": 0.75
+        },
+        {
+          "archetype": "gunner",
+          "count": 2,
+          "difficulty": 0.75
+        }
       ],
       "reinforcements": [
-        {"at_seconds": 75, "archetype": "scout", "count": 3, "difficulty": 0.8}
+        {
+          "at_seconds": 75,
+          "archetype": "scout",
+          "count": 3,
+          "difficulty": 0.8
+        }
       ],
       "time_limit": 0,
       "reward_xp": 560,
@@ -235,10 +400,26 @@
         "interact_range": 3.2
       },
       "enemies": [
-        {"archetype": "rifleman", "count": 9, "difficulty": 0.8},
-        {"archetype": "gunner", "count": 3, "difficulty": 0.8},
-        {"archetype": "rocketeer", "count": 2, "difficulty": 0.8},
-        {"archetype": "scout", "count": 4, "difficulty": 0.8}
+        {
+          "archetype": "rifleman",
+          "count": 9,
+          "difficulty": 0.8
+        },
+        {
+          "archetype": "gunner",
+          "count": 3,
+          "difficulty": 0.8
+        },
+        {
+          "archetype": "rocketeer",
+          "count": 2,
+          "difficulty": 0.8
+        },
+        {
+          "archetype": "scout",
+          "count": 4,
+          "difficulty": 0.8
+        }
       ],
       "time_limit": 480,
       "reward_xp": 640,
@@ -259,18 +440,82 @@
         "boss": true
       },
       "enemies": [
-        {"archetype": "boss", "count": 1, "difficulty": 0.9, "marked": true},
-        {"archetype": "officer", "count": 2, "difficulty": 0.85},
-        {"archetype": "gunner", "count": 2, "difficulty": 0.85},
-        {"archetype": "rifleman", "count": 6, "difficulty": 0.85},
-        {"archetype": "scout", "count": 3, "difficulty": 0.85}
+        {
+          "archetype": "boss",
+          "count": 1,
+          "difficulty": 0.9,
+          "marked": true
+        },
+        {
+          "archetype": "officer",
+          "count": 2,
+          "difficulty": 0.85
+        },
+        {
+          "archetype": "gunner",
+          "count": 2,
+          "difficulty": 0.85
+        },
+        {
+          "archetype": "rifleman",
+          "count": 6,
+          "difficulty": 0.85
+        },
+        {
+          "archetype": "scout",
+          "count": 3,
+          "difficulty": 0.85
+        }
       ],
       "reinforcements": [
-        {"at_seconds": 60, "archetype": "rifleman", "count": 4, "difficulty": 0.85}
+        {
+          "at_seconds": 60,
+          "archetype": "rifleman",
+          "count": 4,
+          "difficulty": 0.85
+        }
       ],
       "time_limit": 0,
       "reward_xp": 1000,
       "reward_coins": 400,
+      "checkpoints": 2,
+      "unlock_weapon": ""
+    },
+    {
+      "id": 13,
+      "name_key": "m13_name",
+      "brief_key": "m13_brief",
+      "map": "city",
+      "time_of_day": "day",
+      "weather": "clear",
+      "objective": {
+        "type": "eliminate_all"
+      },
+      "enemies": [
+        {
+          "archetype": "rifleman",
+          "count": 6,
+          "difficulty": 0.55
+        },
+        {
+          "archetype": "scout",
+          "count": 3,
+          "difficulty": 0.5
+        },
+        {
+          "archetype": "gunner",
+          "count": 2,
+          "difficulty": 0.6
+        },
+        {
+          "archetype": "officer",
+          "count": 1,
+          "difficulty": 0.65
+        }
+      ],
+      "time_limit": 0,
+      "reward_xp": 800,
+      "reward_coins": 300,
       "checkpoints": 2,
       "unlock_weapon": ""
     }
