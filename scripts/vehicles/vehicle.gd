@@ -139,7 +139,8 @@ func _box(parent: Node3D, size: Vector3, position: Vector3, color: Color) -> Mes
 	return mesh
 
 
-func _wheel(position: Vector3, radius: float, steers: bool) -> void:
+func _wheel(position: Vector3, radius: float, steers: bool, rim_color: Color = Color(0.07, 0.07, 0.07),
+		spokes: int = 0) -> void:
 	var pivot := Node3D.new()
 	pivot.position = position
 	add_child(pivot)
@@ -151,8 +152,41 @@ func _wheel(position: Vector3, radius: float, steers: bool) -> void:
 	cylinder.height = radius * 0.7
 	mesh.mesh = cylinder
 	mesh.rotation_degrees = Vector3(0, 0, 90)
-	mesh.material_override = _material(Color(0.07, 0.07, 0.07), 0.0)
+	mesh.material_override = _material(rim_color, 0.0)
+	if rim_color.v > 0.15:
+		(mesh.material_override as StandardMaterial3D).metallic = 0.85
+		(mesh.material_override as StandardMaterial3D).roughness = 0.22
 	pivot.add_child(mesh)
+
+	# جنوط متعددة الأضلاع
+	if spokes > 0:
+		for index in spokes:
+			var angle := TAU * float(index) / float(spokes)
+			var spoke := MeshInstance3D.new()
+			var spoke_mesh := BoxMesh.new()
+			spoke_mesh.size = Vector3(radius * 1.45, radius * 0.10, radius * 0.10)
+			spoke.mesh = spoke_mesh
+			spoke.position = Vector3(0, cos(angle) * radius * 0.45, sin(angle) * radius * 0.45)
+			spoke.rotation.z = -angle
+			var spoke_mat := StandardMaterial3D.new()
+			spoke_mat.albedo_color = rim_color
+			spoke_mat.metallic = 0.9
+			spoke_mat.roughness = 0.18
+			spoke.material_override = spoke_mat
+			pivot.add_child(spoke)
+		var hub := MeshInstance3D.new()
+		var hub_mesh := CylinderMesh.new()
+		hub_mesh.top_radius = radius * 0.18
+		hub_mesh.bottom_radius = radius * 0.18
+		hub_mesh.height = radius * 0.5
+		hub.mesh = hub_mesh
+		hub.rotation_degrees = Vector3(0, 0, 90)
+		var hub_mat := StandardMaterial3D.new()
+		hub_mat.albedo_color = rim_color
+		hub_mat.metallic = 0.9
+		hub_mat.roughness = 0.18
+		hub.material_override = hub_mat
+		pivot.add_child(hub)
 
 	_wheel_nodes.append(mesh)
 	if steers:
@@ -165,7 +199,7 @@ func _build_meshes() -> void:
 		return
 
 	if vehicle_id in ["car_super", "car_super2"]:
-		_build_supercar(Color(0.26, 0.28, 0.34) if vehicle_id == "car_super" else Color(0.72, 0.06, 0.06))
+		_build_supercar(Color(0.015, 0.015, 0.02) if vehicle_id == "car_super" else Color(0.55, 0.03, 0.03))
 		return
 
 	if _build_gltf_model():
@@ -278,7 +312,14 @@ func _build_meshes() -> void:
 func _build_supercar(paint: Color) -> void:
 	var glass_color := Color(0.05, 0.07, 0.10)
 	# الهيكل السفلي
-	_box(self, Vector3(2.24, 0.46, 4.95), Vector3(0, 0.52, 0), paint)
+	var gloss := StandardMaterial3D.new()
+	gloss.albedo_color = paint
+	gloss.metallic = 0.85
+	gloss.roughness = 0.10
+	gloss.clearcoat_enabled = true
+	gloss.clearcoat = 1.0
+	var body_mesh := _box(self, Vector3(2.24, 0.46, 4.95), Vector3(0, 0.52, 0), paint)
+	body_mesh.material_override = gloss
 	# مقدمة منخفضة
 	_box(self, Vector3(2.10, 0.30, 1.46), Vector3(0, 0.58, -1.94), paint.darkened(0.06))
 	# مؤخرة مرتفعة
@@ -310,8 +351,8 @@ func _build_supercar(paint: Color) -> void:
 	# عجلات كبيرة
 	var wheel_radius := 0.54
 	for side in [-1.0, 1.0]:
-		_wheel(Vector3(1.06 * side, wheel_radius, -1.64), wheel_radius, true)
-		_wheel(Vector3(1.08 * side, wheel_radius, 1.64), wheel_radius + 0.03, false)
+		_wheel(Vector3(1.06 * side, wheel_radius, -1.64), wheel_radius, true, Color(0.78, 0.80, 0.84), 6)
+		_wheel(Vector3(1.08 * side, wheel_radius, 1.64), wheel_radius + 0.03, false, Color(0.78, 0.80, 0.84), 6)
 
 	_seat_positions = [Vector3(0, 1.15, -0.1), Vector3(0, 1.15, 0.6)]
 	_camera_mode = 0
