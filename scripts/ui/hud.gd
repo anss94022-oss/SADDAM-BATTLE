@@ -15,33 +15,37 @@ signal vehicle_camera_pressed
 
 const TOUCH_BUTTONS := [
 	"fire", "aim", "reload", "weapon", "jump", "crouch",
-	"grenade", "heal", "interact", "sprint", "scope", "camera"
+	"grenade", "heal", "interact", "sprint", "scope", "camera",
+	"autofire", "view"
 ]
 
 const DEFAULT_LAYOUT := {
-	"fire": {"x": 0.87, "y": 0.80},
-	"aim": {"x": 0.74, "y": 0.72},
-	"reload": {"x": 0.89, "y": 0.62},
-	"weapon": {"x": 0.98, "y": 0.46},
-	"jump": {"x": 0.72, "y": 0.90},
-	"crouch": {"x": 0.62, "y": 0.86},
-	"grenade": {"x": 0.60, "y": 0.68},
-	"heal": {"x": 0.50, "y": 0.77},
-	"interact": {"x": 0.50, "y": 0.60},
-	"sprint": {"x": 0.20, "y": 0.68},
-	"scope": {"x": 0.86, "y": 0.50},
-	"camera": {"x": 0.94, "y": 0.34}
+	"fire": {"x": 0.885, "y": 0.80},
+	"aim": {"x": 0.775, "y": 0.705},
+	"jump": {"x": 0.745, "y": 0.905},
+	"crouch": {"x": 0.625, "y": 0.925},
+	"reload": {"x": 0.915, "y": 0.625},
+	"weapon": {"x": 0.795, "y": 0.545},
+	"scope": {"x": 0.635, "y": 0.745},
+	"grenade": {"x": 0.605, "y": 0.575},
+	"heal": {"x": 0.515, "y": 0.865},
+	"interact": {"x": 0.515, "y": 0.695},
+	"sprint": {"x": 0.30, "y": 0.85},
+	"camera": {"x": 0.965, "y": 0.385},
+	"autofire": {"x": 0.90, "y": 0.255},
+	"view": {"x": 0.90, "y": 0.135}
 }
 
 const BUTTON_LABELS := {
 	"fire": "touch_fire", "aim": "touch_aim", "reload": "touch_reload",
 	"weapon": "touch_weapon", "jump": "touch_jump", "crouch": "touch_crouch",
 	"grenade": "touch_grenade", "heal": "touch_heal", "interact": "touch_interact",
-	"sprint": "touch_sprint", "scope": "touch_scope", "camera": "touch_switch_view"
+	"sprint": "touch_sprint", "scope": "touch_scope", "camera": "touch_switch_view",
+	"autofire": "touch_autofire", "view": "touch_view"
 }
 
-const TOUCH_BASE_SIZE := 92.0
-const JOYSTICK_RADIUS := 74.0
+const TOUCH_BASE_SIZE := 104.0
+const JOYSTICK_RADIUS := 96.0
 
 var player: Node3D = null
 var mission_manager: Node = null
@@ -92,6 +96,7 @@ var _hit_timer := 0.0
 var _message_timer := 0.0
 var _suppress := false
 var _mission_bound := false
+var _minimap: Control
 
 
 func _ready() -> void:
@@ -132,20 +137,30 @@ func _build() -> void:
 	stats.add_child(_stamina_bar)
 
 	# ---- الهدف ----
-	_objective_label = _label("", 17, Color(0.97, 0.89, 0.62))
+	_objective_label = _label("", 20, Color(0.97, 0.89, 0.62))
 	_objective_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_objective_label.position = Vector2(-260, 16)
-	_objective_label.size = Vector2(520, 26)
+	_objective_label.position = Vector2(-260, 14)
+	_objective_label.size = Vector2(520, 30)
 	_objective_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_root.add_child(_objective_label)
 
 	_progress_bar = ProgressBar.new()
 	_progress_bar.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_progress_bar.position = Vector2(-160, 44)
-	_progress_bar.size = Vector2(320, 8)
 	_progress_bar.show_percentage = false
 	_progress_bar.max_value = 1.0
+	var bar_bg := StyleBoxFlat.new()
+	bar_bg.bg_color = Color(0.02, 0.03, 0.05, 0.55)
+	bar_bg.set_corner_radius_all(3)
+	var bar_fill := StyleBoxFlat.new()
+	bar_fill.bg_color = Color(0.95, 0.68, 0.28, 0.9)
+	bar_fill.set_corner_radius_all(3)
+	_progress_bar.add_theme_stylebox_override("background", bar_bg)
+	_progress_bar.add_theme_stylebox_override("fill", bar_fill)
 	_root.add_child(_progress_bar)
+	_progress_bar.offset_left = -140
+	_progress_bar.offset_top = 46
+	_progress_bar.offset_right = 140
+	_progress_bar.offset_bottom = 52
 
 	_timer_label = _label("", 16, Color(0.85, 0.92, 1.0))
 	_timer_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -239,6 +254,14 @@ func _build() -> void:
 	_scope_overlay.visible = false
 	_scope_overlay.draw.connect(_draw_scope)
 	_root.add_child(_scope_overlay)
+
+	_minimap = Control.new()
+	_minimap.position = Vector2(-186, 18)
+	_minimap.size = Vector2(160, 160)
+	_minimap.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_minimap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_minimap.draw.connect(_draw_minimap)
+	_root.add_child(_minimap)
 
 	_interact_label = _label("", 20, Color(1.0, 0.95, 0.7))
 	_interact_label.set_anchors_preset(Control.PRESET_CENTER)
@@ -364,16 +387,16 @@ func _build_touch_controls() -> void:
 func _style_button(button: Button, primary: bool) -> void:
 	var alpha := 0.32 + GameSettings.sfx_volume * 0.0
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.10, 0.34, 0.52, 0.46 if primary else 0.30)
-	normal.border_color = Color(0.55, 0.82, 1.0, 0.7)
-	normal.set_border_width_all(2)
-	normal.set_corner_radius_all(46)
+	normal.bg_color = Color(0.06, 0.18, 0.28, 0.62 if primary else 0.52)
+	normal.border_color = Color(0.80, 0.93, 1.0, 0.95)
+	normal.set_border_width_all(3)
+	normal.set_corner_radius_all(62)
 	var pressed_style := normal.duplicate() as StyleBoxFlat
-	pressed_style.bg_color = Color(0.25, 0.62, 0.92, 0.75)
+	pressed_style.bg_color = Color(0.28, 0.68, 1.0, 0.85)
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", normal)
 	button.add_theme_stylebox_override("pressed", pressed_style)
-	button.add_theme_font_size_override("font_size", 14)
+	button.add_theme_font_size_override("font_size", 21)
 
 
 func _connect_button(button: Button, name: String) -> void:
@@ -423,6 +446,18 @@ func _connect_button(button: Button, name: String) -> void:
 			button.pressed.connect(func(): scope_pressed.emit())
 		"camera":
 			button.pressed.connect(func(): vehicle_camera_pressed.emit())
+		"autofire":
+			button.toggle_mode = true
+			button.toggled.connect(func(value: bool):
+				if player != null:
+					player.auto_fire = value
+				button.modulate = Color(0.6, 1.0, 0.7) if value else Color.WHITE
+			)
+		"view":
+			button.pressed.connect(func():
+				if player != null:
+					player.toggle_view_mode()
+			)
 
 
 func _apply_layout() -> void:
@@ -630,6 +665,54 @@ func _draw_hit_marker() -> void:
 	_hit_marker.draw_line(center + Vector2(13, -13), center + Vector2(4, -4), color, 2.5)
 
 
+## رادار مصغّر: اللاعب في المركز، الأعداء أحمر، المركبات أزرق، الأهداف أصفر.
+func _draw_minimap() -> void:
+	if _minimap == null or player == null:
+		return
+	var center := _minimap.size * 0.5
+	var radius := center.x - 8.0
+	_minimap.draw_circle(center, radius + 6.0, Color(0.03, 0.06, 0.08, 0.62))
+	_minimap.draw_arc(center, radius, 0, TAU, 48, Color(0.55, 0.78, 1.0, 0.5), 1.5)
+	_minimap.draw_arc(center, radius * 0.55, 0, TAU, 40, Color(0.55, 0.78, 1.0, 0.18), 1.0)
+	_minimap.draw_line(center + Vector2(-4, 0), center + Vector2(4, 0),
+			Color(1, 1, 1, 0.5), 1.0)
+	_minimap.draw_line(center + Vector2(0, -4), center + Vector2(0, 4),
+			Color(1, 1, 1, 0.5), 1.0)
+
+	var yaw: float = float(player.rotation.y)
+	var scale := radius / 55.0
+
+	for node in get_tree().get_nodes_in_group("enemy"):
+		_draw_blip(node, center, float(yaw) if false else yaw, scale, Color(0.95, 0.25, 0.2))
+	for node in get_tree().get_nodes_in_group("hostage"):
+		_draw_blip(node, center, yaw, scale, Color(0.35, 0.95, 0.45))
+	for node in get_tree().get_nodes_in_group("charge_target"):
+		_draw_blip(node, center, yaw, scale, Color(1.0, 0.8, 0.2))
+	for node in get_tree().get_nodes_in_group("vehicle"):
+		_draw_blip(node, center, yaw, scale, Color(0.35, 0.65, 1.0))
+
+	# سهم اللاعب
+	var arrow := Color(0.95, 0.98, 1.0)
+	_minimap.draw_colored_polygon(PackedVector2Array([
+		center + Vector2(0, -7), center + Vector2(5, 6), center + Vector2(0, 3),
+		center + Vector2(-5, 6)
+	]), arrow)
+
+
+func _draw_blip(node: Node, center: Vector2, yaw: float, scale: float, color: Color) -> void:
+	if not (node is Node3D) or not is_instance_valid(node):
+		return
+	var offset: Vector3 = (node as Node3D).global_position - player.global_position
+	var flat := Vector2(offset.x, offset.z)
+	if flat.length() > 55.0:
+		return
+	var rotated := flat.rotated(yaw)
+	var point := center + Vector2(rotated.x, rotated.y) * scale
+	var faded := color
+	faded.a = clampf(1.0 - flat.length() / 60.0, 0.35, 1.0)
+	_minimap.draw_circle(point, 2.6, faded)
+
+
 func _draw_scope() -> void:
 	var size := _scope_overlay.size
 	if size.x <= 0 or size.y <= 0:
@@ -816,6 +899,8 @@ func _process(delta: float) -> void:
 
 	if player == null:
 		return
+	if _minimap != null:
+		_minimap.queue_redraw()
 	if player.get("stamina") != null:
 		_stamina_bar.value = float(player.stamina)
 

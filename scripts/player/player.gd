@@ -54,7 +54,10 @@ var camera: Camera3D
 var spring_arm: SpringArm3D
 var muzzle: Node3D
 var rig: SoldierRig
+var view_weapon: ViewWeapon
 var current_vehicle: Node = null
+var first_person := true
+var auto_fire := false
 
 var _yaw := 0.0
 var _pitch := -0.12
@@ -118,9 +121,14 @@ func _build_rig() -> void:
 	add_child(rig)
 	rig.setup(false, Color(0.30, 0.34, 0.24))
 
+	view_weapon = ViewWeapon.new()
+	view_weapon.name = "ViewWeapon"
+	camera.add_child(view_weapon)
+
 	muzzle = Node3D.new()
 	muzzle.position = Vector3(0.16, 1.42, -0.72)
 	add_child(muzzle)
+	set_view_mode(true)
 
 
 func _build_weapons() -> void:
@@ -158,6 +166,8 @@ func _equip(index: int) -> void:
 	var weapon := current_weapon()
 	if rig != null:
 		rig.set_weapon(String(weapon["id"]))
+	if view_weapon != null:
+		view_weapon.build(String(weapon["id"]))
 	ammo_changed.emit(int(weapon["magazine_current"]), int(weapon["reserve_current"]),
 			Loc.t(String(weapon["name_key"])))
 	weapon_changed.emit(Loc.t(String(weapon["name_key"])), String(weapon["id"]))
@@ -241,11 +251,16 @@ func _apply_look(delta: float) -> void:
 		camera.position = Vector3.ZERO
 
 	camera.fov = lerpf(camera.fov, target_fov, clampf(delta * 9.0, 0.0, 1.0))
-	var target_length := 1.35 if is_aiming else 3.3
-	spring_arm.spring_length = lerpf(spring_arm.spring_length, target_length,
-			clampf(delta * 10.0, 0.0, 1.0))
-	spring_arm.position.x = lerpf(spring_arm.position.x, 0.42 if is_aiming else 0.52,
-			clampf(delta * 10.0, 0.0, 1.0))
+	if not first_person:
+		var target_length := 1.35 if is_aiming else 3.3
+		spring_arm.spring_length = lerpf(spring_arm.spring_length, target_length,
+				clampf(delta * 10.0, 0.0, 1.0))
+		spring_arm.position.x = lerpf(spring_arm.position.x, 0.42 if is_aiming else 0.52,
+				clampf(delta * 10.0, 0.0, 1.0))
+	else:
+		spring_arm.position.y = lerpf(spring_arm.position.y,
+				1.50 if is_crouching else 1.62, clampf(delta * 8.0, 0.0, 1.0))
+		camera.position = Vector3.ZERO
 
 
 func _apply_move(delta: float) -> void:
@@ -329,11 +344,29 @@ func _tick_weapon(delta: float) -> void:
 		set_aiming(false)
 
 	var wants_fire := is_firing or Input.is_action_pressed("fire")
+	if auto_fire and _fire_cooldown <= 0.0 and _target_in_crosshair():
+		wants_fire = true
 	if not wants_fire:
 		_fired_once = false
 	elif _fire_cooldown <= 0.0:
 		if bool(weapon["automatic"]) or not _fired_once:
 			_shoot()
+
+
+## إطلاق تلقائي: يتحقق من وجود عدو في مركز الشاشة فقط.
+func _target_in_crosshair() -> bool:
+	if not alive:
+		return false
+	var origin := camera.global_position
+	var direction := -camera.global_transform.basis.z
+	var space := get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + direction * 120.0,
+			0b111, [get_rid()])
+	var result := space.intersect_ray(query)
+	if result.is_empty():
+		return false
+	var collider = result["collider"]
+	return collider != null and collider.is_in_group("enemy")
 
 
 var _fired_once := false
@@ -369,6 +402,8 @@ func _shoot() -> void:
 			Loc.t(String(weapon["name_key"])))
 
 	AudioManager.play_weapon(String(weapon["sound"]), muzzle.global_position, 0.0)
+	if view_weapon != null:
+		view_weapon.on_fire(float(weapon["recoil"]))
 	_muzzle_flash()
 	# اهتزاز الهاتف عند الإطلاق
 	if OS.has_feature("mobile"):
@@ -538,13 +573,16 @@ func scope_level() -> float:
 
 
 func _muzzle_flash() -> void:
-	if muzzle == null:
+	var source := muzzle
+	if first_person and view_weapon != null and view_weapon.muzzle_node() != null:
+		source = view_weapon.muzzle_node()
+	if source == null:
 		return
 	var light := OmniLight3D.new()
 	light.light_color = Color(1.0, 0.82, 0.45)
 	light.light_energy = 4.0
 	light.omni_range = 7.0
-	muzzle.add_child(light)
+	source.add_child(light)
 	var flash_tween := light.create_tween()
 	flash_tween.tween_interval(0.05)
 	flash_tween.tween_callback(light.queue_free)
@@ -659,8 +697,10 @@ func _die() -> void:
 		return
 	alive = false
 	is_firing = false
-	if rig != null:
+	if rig != null and not first_person:
 		rig.play_death()
+	if view_weapon != null:
+		view_weapon.visible = false
 	spring_arm.spring_length = 5.0
 	player_died.emit()
 	if current_vehicle != null:
@@ -683,7 +723,9 @@ func revive(at_position: Vector3, health_ratio: float = 1.0) -> void:
 	if rig != null:
 		rig.dead = false
 		rig.rotation_degrees = Vector3.ZERO
-		rig.visible = true
+		rig.visible = not first_person
+	if view_weapon != null:
+		view_weapon.visible = first_person
 	spring_arm.spring_length = 3.3
 
 
@@ -747,6 +789,8 @@ func enter_vehicle(vehicle: Node, as_driver: bool = true) -> void:
 		return
 	current_vehicle = vehicle
 	rig.visible = false
+	if view_weapon != null:
+		view_weapon.visible = false
 	camera.current = false
 	velocity = Vector3.ZERO
 	entered_vehicle.emit(vehicle)
@@ -763,7 +807,9 @@ func exit_vehicle(force: bool = false) -> void:
 	if not force:
 		var exit_point: Vector3 = vehicle.global_position + vehicle.global_transform.basis.x * 2.0
 		global_position = exit_point + Vector3(0, 1.0, 0)
-	rig.visible = alive
+	rig.visible = alive and not first_person
+	if view_weapon != null:
+		view_weapon.visible = alive and first_person
 	if camera != null:
 		camera.current = true
 	exited_vehicle.emit()
@@ -775,11 +821,36 @@ func is_in_vehicle() -> bool:
 
 # --------------------------------------------------------------- التحريك
 func _update_rig(delta: float) -> void:
-	if rig == null:
-		return
 	var speed := Vector2(velocity.x, velocity.z).length()
+	if view_weapon != null:
+		view_weapon.move_speed = speed
+		view_weapon.is_aiming = is_aiming and not _is_reloading
+		view_weapon.is_reloading = _is_reloading
+		view_weapon.add_sway(look_delta + Vector2(randf_range(-0.4, 0.4), randf_range(-0.4, 0.4)))
+	if rig == null or first_person:
+		return
 	rig.animate(delta, speed, is_sprinting and speed > 6.0, is_crouching, is_aiming,
 			_fire_cooldown > 0.0 and _is_reloading == false and weapons.size() > 0)
+
+
+## تبديل بين منظور أول (مثل مراجع FPS) ومنظور ثالث.
+func set_view_mode(fp: bool) -> void:
+	first_person = fp
+	if rig != null:
+		rig.visible = not fp and alive
+	if view_weapon != null:
+		view_weapon.visible = fp and alive
+	if first_person:
+		spring_arm.spring_length = 0.0
+		spring_arm.position = Vector3(0.0, 1.62, 0.0)
+		camera.position = Vector3.ZERO
+	else:
+		spring_arm.spring_length = 3.3
+		spring_arm.position = Vector3(0.52, 1.52, 0.0)
+
+
+func toggle_view_mode() -> void:
+	set_view_mode(not first_person)
 
 
 # -------------------------------------------------------------- واجهة لمسية

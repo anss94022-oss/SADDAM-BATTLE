@@ -54,6 +54,25 @@ var _fire: CPUParticles3D
 var _seat_positions: Array = []
 var _muzzle: Node3D
 var _last_driver: Node = null
+var _model_root: Node3D = null
+var _model_wheels: Array = []
+var _model_front_wheels: Array = []
+var _using_model := false
+
+const MODEL_MAP := {
+	"car_4x4": "suv",
+	"car_civilian": "sedan",
+	"truck_transport": "truck",
+	"truck_supply": "truck-flat",
+	"armored_apc": "van",
+	"recon_buggy": "race",
+	"technicals": "truck-flat",
+	"heli_transport": "",
+	"heli_recon": "",
+	"heli_attack": "",
+	"bike_military": "",
+	"bike_civilian": ""
+}
 
 
 func setup(id: String) -> void:
@@ -141,6 +160,10 @@ func _wheel(position: Vector3, radius: float, steers: bool) -> void:
 func _build_meshes() -> void:
 	if is_air:
 		_build_helicopter_meshes()
+		return
+
+	if _build_gltf_model():
+		_build_model_details()
 		return
 
 	var body_color := Color(0.28, 0.30, 0.22)
@@ -238,6 +261,123 @@ func _build_meshes() -> void:
 	if String(data.get("mounted_weapon", "")) != "":
 		var mount := Node3D.new()
 		mount.position = Vector3(0, height + 1.1 if class_name_value != "recon" else 1.9, 0.2)
+		add_child(mount)
+		_box(mount, Vector3(0.12, 0.12, 0.9), Vector3(0, 0, -0.4), Color(0.12, 0.12, 0.12))
+		_muzzle = Node3D.new()
+		_muzzle.position = Vector3(0, 0, -0.95)
+		mount.add_child(_muzzle)
+
+
+## تحميل نموذج مركبة حقيقي (Kenney Car Kit — CC0) بدل الصناديق.
+func _build_gltf_model() -> bool:
+	var model_name := String(MODEL_MAP.get(vehicle_id, ""))
+	if model_name == "":
+		return false
+	var path := "res://assets/models/vehicles/%s.glb" % model_name
+	if not ResourceLoader.exists(path):
+		return false
+
+	var packed: PackedScene = load(path)
+	if packed == null:
+		return false
+	var instance := packed.instantiate()
+	if instance == null:
+		return false
+
+	_model_root = Node3D.new()
+	_model_root.name = "Model"
+	add_child(_model_root)
+	_model_root.add_child(instance)
+
+	var target_length := 4.6
+	var class_name_value := String(data.get("class", "car"))
+	if is_motorcycle:
+		target_length = 2.2
+	elif class_name_value == "truck":
+		target_length = 6.6
+	elif class_name_value == "armored":
+		target_length = 5.6
+	elif class_name_value == "recon":
+		target_length = 4.0
+
+	var aabb := _aabb_of(instance)
+	var span := maxf(aabb.size.x, aabb.size.z)
+	if span <= 0.01:
+		span = 1.0
+	var factor := target_length / span
+	instance.scale = Vector3.ONE * factor
+	var center := aabb.position + aabb.size * 0.5
+	instance.position = Vector3(-center.x * factor, -aabb.position.y * factor,
+			-center.z * factor)
+
+	# ترتيب المحاور: نماذج Kenney تواجه -Z افتراضياً
+	if absf(aabb.size.x) > absf(aabb.size.z) * 1.4:
+		instance.rotation.y = PI * 0.5
+
+	for node in instance.find_children("*", "Node3D", true, false):
+		var node_name := String(node.name).to_lower()
+		if node_name.begins_with("wheel"):
+			_model_wheels.append(node)
+			if node_name.contains("front"):
+				_model_front_wheels.append(node)
+
+	_using_model = true
+	return true
+
+
+func _aabb_of(node: Node) -> AABB:
+	var result := AABB()
+	var first := true
+	for child in node.find_children("*", "MeshInstance3D", true, false):
+		var mesh := child as MeshInstance3D
+		if mesh.mesh == null:
+			continue
+		var box := mesh.global_transform * mesh.get_aabb()
+		if first:
+			result = box
+			first = false
+		else:
+			result = result.merge(box)
+	return result
+
+
+func _build_model_details() -> void:
+	# إضاءات المركبة فقط (النموذج يحتوي الهيكل والعجلات)
+	var length := 4.6
+	var class_name_value := String(data.get("class", "car"))
+	if class_name_value == "truck":
+		length = 6.6
+	elif class_name_value == "armored":
+		length = 5.6
+
+	var headlight := SpotLight3D.new()
+	headlight.position = Vector3(-0.62, 0.85, -length * 0.48)
+	headlight.rotation_degrees = Vector3(-5, 0, 0)
+	headlight.light_energy = 4.0
+	headlight.spot_range = 48.0
+	headlight.spot_angle = 32.0
+	headlight.light_color = Color(1.0, 0.95, 0.82)
+	add_child(headlight)
+
+	var headlight_r := SpotLight3D.new()
+	headlight_r.position = Vector3(0.62, 0.85, -length * 0.48)
+	headlight_r.rotation_degrees = Vector3(-5, 0, 0)
+	headlight_r.light_energy = 4.0
+	headlight_r.spot_range = 48.0
+	headlight_r.spot_angle = 32.0
+	headlight_r.light_color = Color(1.0, 0.95, 0.82)
+	add_child(headlight_r)
+
+	_seat_positions = []
+	_seat_positions.append(Vector3(-0.42, 1.25, -length * 0.12))
+	_seat_positions.append(Vector3(0.42, 1.25, -length * 0.12))
+	for index in range(2, seats):
+		_seat_positions.append(Vector3(-0.42 if index % 2 == 0 else 0.42, 1.25,
+				length * 0.10 * float(index - 1)))
+
+	if String(data.get("mounted_weapon", "")) != "":
+		var mount := Node3D.new()
+		mount.position = Vector3(0, 1.95, 0.4)
 		add_child(mount)
 		_box(mount, Vector3(0.12, 0.12, 0.9), Vector3(0, 0, -0.4), Color(0.12, 0.12, 0.12))
 		_muzzle = Node3D.new()
@@ -385,6 +525,18 @@ func _physics_process(delta: float) -> void:
 	for pivot in _steer_nodes:
 		(pivot as Node3D).rotation.y = lerp_angle((pivot as Node3D).rotation.y,
 				steer * 0.5, clampf(delta * 8.0, 0.0, 1.0))
+
+	if _using_model:
+		for wheel in _model_wheels:
+			var wheel_node := wheel as Node3D
+			if wheel_node == null:
+				continue
+			wheel_node.rotate_object_local(Vector3.RIGHT, speed * delta / 0.34)
+		for wheel in _model_front_wheels:
+			var front := wheel as Node3D
+			if front != null:
+				front.rotation.y = lerp_angle(front.rotation.y, steer * 0.45,
+						clampf(delta * 8.0, 0.0, 1.0))
 
 	if _engine_player != null:
 		_engine_player.pitch_scale = 0.75 + speed_ratio * 1.25

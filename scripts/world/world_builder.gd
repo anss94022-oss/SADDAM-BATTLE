@@ -121,6 +121,7 @@ func _add_environment() -> void:
 	_env.ambient_light_color = ambient
 	_env.ambient_light_energy = 0.85 if _time_of_day != "night" else 0.35
 	_env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	_env.tonemap_exposure = 0.78
 	_env.glow_enabled = not GameSettings.is_performance()
 	_env.glow_intensity = 0.45
 	_env.ssao_enabled = false
@@ -159,7 +160,7 @@ func _add_ground(map_name: String) -> void:
 	mesh.mesh = plane
 
 	var texture_name := "sand"
-	var tint := Color(1, 1, 1)
+	var tint := Color(0.86, 0.80, 0.68)
 	match map_name:
 		"factory":
 			texture_name = "asphalt"
@@ -194,7 +195,7 @@ func _add_lighting() -> void:
 		_:
 			_sun.rotation_degrees = Vector3(-52, -58, 0)
 			_sun.light_color = Color(1.0, 0.95, 0.86)
-			_sun.light_energy = 1.3
+			_sun.light_energy = 1.15
 	add_child(_sun)
 
 

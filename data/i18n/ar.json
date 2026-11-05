@@ -242,5 +242,9 @@
   "common_on": "مفعّل",
   "common_off": "معطّل",
   "common_yes": "نعم",
-  "common_no": "لا"
+  "common_no": "لا",
+  "touch_autofire": "إطلاق تلقائي",
+  "touch_view": "منظور",
+  "hud_radar": "رادار",
+  "touch_scope": "تقريب"
 }

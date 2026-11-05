@@ -135,13 +135,13 @@ func _panel(key: String, title: String) -> VBoxContainer:
 
 	var box := VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_theme_constant_override("separation", 10)
+	box.add_theme_constant_override("separation", 14)
 	scroll.add_child(box)
 
 	if title != "":
 		var heading := Label.new()
 		heading.text = title
-		heading.add_theme_font_size_override("font_size", 30)
+		heading.add_theme_font_size_override("font_size", 38)
 		heading.add_theme_color_override("font_color", ACCENT)
 		box.add_child(heading)
 
@@ -152,9 +152,9 @@ func _panel(key: String, title: String) -> VBoxContainer:
 func _button(parent: Node, text: String, on_press: Callable, primary: bool = false) -> Button:
 	var button := Button.new()
 	button.text = text
-	button.custom_minimum_size = Vector2(0, 50)
+	button.custom_minimum_size = Vector2(0, 66)
 	button.focus_mode = Control.FOCUS_NONE
-	button.add_theme_font_size_override("font_size", 19)
+	button.add_theme_font_size_override("font_size", 24)
 	button.add_theme_color_override("font_color", Color(0.08, 0.06, 0.03) if primary else TEXT)
 
 	var style := StyleBoxFlat.new()
@@ -177,7 +177,7 @@ func _button(parent: Node, text: String, on_press: Callable, primary: bool = fal
 	return button
 
 
-func _text(parent: Node, value: String, size: int = 15, color: Color = MUTED) -> Label:
+func _text(parent: Node, value: String, size: int = 19, color: Color = MUTED) -> Label:
 	var label := Label.new()
 	label.text = value
 	label.add_theme_font_size_override("font_size", size)
@@ -206,11 +206,11 @@ func _build_main() -> void:
 
 	var title := Label.new()
 	title.text = Loc.t("app_title")
-	title.add_theme_font_size_override("font_size", 48)
+	title.add_theme_font_size_override("font_size", 58)
 	title.add_theme_color_override("font_color", ACCENT)
 	box.add_child(title)
 
-	_text(box, Loc.t("app_subtitle"), 17, MUTED)
+	_text(box, Loc.t("app_subtitle"), 22, MUTED)
 	box.add_child(HSeparator.new())
 
 	var row := HBoxContainer.new()
@@ -230,7 +230,7 @@ func _build_main() -> void:
 
 	var buttons := VBoxContainer.new()
 	buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	buttons.add_theme_constant_override("separation", 9)
+	buttons.add_theme_constant_override("separation", 12)
 	row.add_child(buttons)
 
 	_button(buttons, Loc.t("menu_new_campaign"), func(): new_game_requested.emit(), true)

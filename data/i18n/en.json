@@ -242,5 +242,9 @@
   "common_on": "On",
   "common_off": "Off",
   "common_yes": "Yes",
-  "common_no": "No"
+  "common_no": "No",
+  "touch_autofire": "Auto Fire",
+  "touch_view": "View",
+  "hud_radar": "Radar",
+  "touch_scope": "Zoom"
 }

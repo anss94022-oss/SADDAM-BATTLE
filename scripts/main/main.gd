@@ -139,6 +139,8 @@ func _process(delta: float) -> void:
 		player.cycle_scope()
 	if Input.is_action_just_pressed("switch_vehicle_camera"):
 		_cycle_vehicle_camera()
+	if Input.is_action_just_pressed("switch_view"):
+		player.toggle_view_mode()
 
 	# اهتزاز الكاميرا بعد الانفجارات
 	if _shake > 0.0 and player.camera != null:
@@ -222,6 +224,7 @@ func _setup_input_actions() -> void:
 	_add_action("heal", [KEY_H])
 	_add_action("cycle_scope", [KEY_V])
 	_add_action("switch_vehicle_camera", [KEY_C])
+	_add_action("switch_view", [KEY_F])
 
 
 func _add_action(action: String, keys: Array, mouse_button: int = -1) -> void:
