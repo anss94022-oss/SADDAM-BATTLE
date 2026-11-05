@@ -52,6 +52,7 @@ var _mp_password := ""
 var _mp_ip := "192.168.1.10"
 var _mp_port := 7777
 var _result_stats: Dictionary = {}
+var _main_stats: Label
 
 
 func _ready() -> void:
@@ -114,66 +115,76 @@ func _panel(key: String, title: String) -> VBoxContainer:
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	panel.anchor_right = 1.0
 	panel.anchor_bottom = 1.0
-	panel.layout_direction = Control.LAYOUT_DIRECTION_RTL if Loc.is_rtl() else Control.LAYOUT_DIRECTION_LTR
+	panel.layout_direction = Control.LAYOUT_DIRECTION_LTR
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = BG
+	style.bg_color = Color(0.012, 0.016, 0.026, 1.0)
 	panel.add_theme_stylebox_override("panel", style)
 	add_child(panel)
 
+	var bg := Control.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.draw.connect(func(): _draw_menu_bg(bg))
+	panel.add_child(bg)
+
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 26)
-	margin.add_theme_constant_override("margin_right", 26)
-	margin.add_theme_constant_override("margin_top", 22)
+	margin.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	margin.add_theme_constant_override("margin_left", 42)
+	margin.add_theme_constant_override("margin_right", 42)
+	margin.add_theme_constant_override("margin_top", 26)
 	margin.add_theme_constant_override("margin_bottom", 22)
 	panel.add_child(margin)
 
 	var scroll := ScrollContainer.new()
+	scroll.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	margin.add_child(scroll)
 
 	var box := VBoxContainer.new()
+	box.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_theme_constant_override("separation", 14)
+	box.add_theme_constant_override("separation", 12)
 	scroll.add_child(box)
 
 	if title != "":
-		var heading := Label.new()
-		heading.text = title
-		heading.add_theme_font_size_override("font_size", 38)
-		heading.add_theme_color_override("font_color", ACCENT)
+		var heading := _hero_label(title, 40, Color(1.0, 0.74, 0.30), 4)
+		heading.add_theme_color_override("font_outline_color", Color(0.38, 0.18, 0.02, 0.9))
+		heading.custom_minimum_size = Vector2(0, 58)
 		box.add_child(heading)
+
+		var rule := ColorRect.new()
+		rule.color = Color(0.95, 0.62, 0.22, 0.75)
+		rule.custom_minimum_size = Vector2(0, 3)
+		rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(rule)
 
 	_panels[key] = panel
 	return box
 
 
-func _button(parent: Node, text: String, on_press: Callable, primary: bool = false) -> Button:
-	var button := Button.new()
-	button.text = text
-	button.custom_minimum_size = Vector2(0, 66)
-	button.focus_mode = Control.FOCUS_NONE
-	button.add_theme_font_size_override("font_size", 24)
-	button.add_theme_color_override("font_color", Color(0.08, 0.06, 0.03) if primary else TEXT)
+func _button(parent: Node, text: String, on_press: Callable, primary: bool = false,
+		compact: bool = false) -> Control:
+	var holder := Control.new()
+	if compact:
+		holder.custom_minimum_size = Vector2(300, 58)
+		holder.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	else:
+		holder.custom_minimum_size = Vector2(0, 74 if primary else 62)
+		holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(holder)
 
-	var style := StyleBoxFlat.new()
-	style.bg_color = ACCENT if primary else Color(0.10, 0.16, 0.24, 0.95)
-	style.set_corner_radius_all(7)
-	style.border_color = Color(0.28, 0.44, 0.6, 0.7)
-	style.set_border_width_all(1)
-	button.add_theme_stylebox_override("normal", style)
-
-	var hover := style.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(1.0, 0.74, 0.38) if primary else Color(0.16, 0.26, 0.36, 0.98)
-	button.add_theme_stylebox_override("hover", hover)
-	button.add_theme_stylebox_override("pressed", hover)
-	button.add_theme_stylebox_override("disabled", style)
-	button.pressed.connect(func():
+	var button := Control.new()
+	button.set_script(load("res://scripts/ui/hero_button.gd"))
+	button.set_anchors_preset(Control.PRESET_FULL_RECT)
+	holder.add_child(button)
+	button.call("setup", text, primary, 26 if primary else (20 if compact else 21))
+	button.connect("pressed", func():
 		AudioManager.play_ui("ui_click", -6.0)
 		on_press.call()
 	)
-	parent.add_child(button)
 	return button
 
 
@@ -189,65 +200,217 @@ func _text(parent: Node, value: String, size: int = 19, color: Color = MUTED) ->
 
 func _slider(parent: Node, label_text: String, min_value: float, max_value: float,
 		step: float, value: float, on_change: Callable) -> void:
-	_text(parent, label_text, 15, TEXT)
+	_text(parent, label_text, 17, TEXT)
 	var slider := HSlider.new()
 	slider.min_value = min_value
 	slider.max_value = max_value
 	slider.step = step
 	slider.value = value
-	slider.custom_minimum_size = Vector2(0, 34)
+	slider.custom_minimum_size = Vector2(460, 36)
+	slider.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	slider.value_changed.connect(on_change)
 	parent.add_child(slider)
 
 
 # --------------------------------------------------------------- الرئيسية
 func _build_main() -> void:
-	var box := _panel("main", "")
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.anchor_right = 1.0
+	panel.anchor_bottom = 1.0
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.012, 0.016, 0.026, 1.0)
+	panel.add_theme_stylebox_override("panel", style)
+	# تخطيط مطلق: نثبّت الاتجاه LTR حتى لا تنعكس الإحداثيات مع واجهة عربية
+	panel.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	add_child(panel)
+	_panels["main"] = panel
 
-	var title := Label.new()
-	title.text = Loc.t("app_title")
-	title.add_theme_font_size_override("font_size", 58)
-	title.add_theme_color_override("font_color", ACCENT)
-	box.add_child(title)
+	var stage := Control.new()
+	stage.set_anchors_preset(Control.PRESET_FULL_RECT)
+	stage.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(stage)
 
-	_text(box, Loc.t("app_subtitle"), 22, MUTED)
-	box.add_child(HSeparator.new())
+	# ---- خلفية تصميمية: تدرّج ليلي + شبكة خفيفة + توهج ----
+	var bg := Control.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.draw.connect(func(): _draw_menu_bg(bg))
+	stage.add_child(bg)
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 18)
-	box.add_child(row)
+	# ---- العنوان ----
+	var title_wrap := VBoxContainer.new()
+	title_wrap.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	title_wrap.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	title_wrap.offset_left = 56.0
+	title_wrap.offset_top = 16.0
+	title_wrap.offset_right = 720.0
+	title_wrap.offset_bottom = 166.0
+	title_wrap.add_theme_constant_override("separation", 0)
+	title_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage.add_child(title_wrap)
 
-	var portrait_panel := PanelContainer.new()
-	portrait_panel.custom_minimum_size = Vector2(210, 0)
-	row.add_child(portrait_panel)
+	var latin := _hero_label("SADDAM HERO", 16, Color(0.62, 0.72, 0.86, 0.9), 5)
+	latin.custom_minimum_size = Vector2(0, 22)
+	title_wrap.add_child(latin)
+
+	var title := _hero_label(Loc.t("app_title"), 46, Color(1.0, 0.72, 0.26), 4)
+	title.add_theme_color_override("font_outline_color", Color(0.42, 0.20, 0.02, 0.85))
+	title.custom_minimum_size = Vector2(0, 64)
+	title_wrap.add_child(title)
+
+	var subtitle := _hero_label(Loc.t("app_subtitle"), 14, Color(0.70, 0.80, 0.92), 2)
+	subtitle.custom_minimum_size = Vector2(0, 20)
+	title_wrap.add_child(subtitle)
+
+	# ---- عمود الأزرار ----
+	var column := VBoxContainer.new()
+	column.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	column.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	column.offset_left = 56.0
+	column.offset_top = 172.0
+	column.offset_right = 600.0
+	column.offset_bottom = 640.0
+	column.add_theme_constant_override("separation", 6)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage.add_child(column)
+
+	_hero_button(column, Loc.t("menu_new_campaign"), func(): new_game_requested.emit(), true)
+	_hero_button(column, Loc.t("menu_continue"), func(): continue_requested.emit())
+	_hero_button(column, Loc.t("menu_missions"), func(): show_missions())
+	_hero_button(column, Loc.t("menu_multiplayer"), func(): show_multiplayer())
+	_hero_button(column, Loc.t("menu_armory"), func(): show_armory())
+	_hero_button(column, Loc.t("menu_achievements"), func(): show_achievements())
+	_hero_button(column, Loc.t("menu_settings"), func(): show_settings())
+	_hero_button(column, Loc.t("menu_quit"), func(): quit_requested.emit())
+
+	# ---- بطاقة الشخصية يمين الشاشة ----
+	var card := PanelContainer.new()
+	card.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	card.anchor_left = 1.0
+	card.anchor_right = 1.0
+	card.anchor_top = 0.0
+	card.anchor_bottom = 0.0
+	card.offset_left = -470.0
+	card.offset_right = -56.0
+	card.offset_top = 88.0
+	card.offset_bottom = 668.0
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color(0.04, 0.06, 0.09, 0.92)
+	card_style.border_color = Color(0.92, 0.62, 0.22, 0.55)
+	card_style.set_border_width_all(2)
+	card_style.set_corner_radius_all(4)
+	card.add_theme_stylebox_override("panel", card_style)
+	stage.add_child(card)
+
+	var portrait_holder := Control.new()
+	portrait_holder.custom_minimum_size = Vector2(406, 572)
+	portrait_holder.clip_contents = true
+	portrait_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(portrait_holder)
+
 	var portrait := TextureRect.new()
-	portrait.custom_minimum_size = Vector2(210, 330)
+	portrait.set_anchors_preset(Control.PRESET_FULL_RECT)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	if ResourceLoader.exists("res://assets/characters/hero_key.png"):
 		portrait.texture = load("res://assets/characters/hero_key.png")
-	portrait_panel.add_child(portrait)
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	portrait_holder.add_child(portrait)
 
-	var buttons := VBoxContainer.new()
-	buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	buttons.add_theme_constant_override("separation", 12)
-	row.add_child(buttons)
+	var name_tag := _hero_label(Loc.t("app_title"), 26, Color(1.0, 0.92, 0.78), 3)
+	name_tag.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	name_tag.anchor_top = 1.0
+	name_tag.anchor_bottom = 1.0
+	name_tag.offset_left = 18.0
+	name_tag.offset_top = -52.0
+	name_tag.offset_right = 338.0
+	name_tag.offset_bottom = -18.0
+	portrait_holder.add_child(name_tag)
 
-	_button(buttons, Loc.t("menu_new_campaign"), func(): new_game_requested.emit(), true)
-	_button(buttons, Loc.t("menu_continue"), func(): continue_requested.emit())
-	_button(buttons, Loc.t("menu_missions"), func(): show_missions())
-	_button(buttons, Loc.t("menu_multiplayer"), func(): show_multiplayer())
-	_button(buttons, Loc.t("menu_armory"), func(): show_armory())
-	_button(buttons, Loc.t("menu_achievements"), func(): show_achievements())
-	_button(buttons, Loc.t("menu_settings"), func(): show_settings())
-	_button(buttons, Loc.t("menu_quit"), func(): quit_requested.emit())
+	# ---- شريط الإحصاءات والتذييل ----
+	_main_stats = _hero_label("", 14, Color(0.66, 0.76, 0.90), 2)
+	_main_stats.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	_main_stats.anchor_top = 1.0
+	_main_stats.anchor_bottom = 1.0
+	_main_stats.offset_left = 58.0
+	_main_stats.offset_top = -44.0
+	_main_stats.offset_right = 560.0
+	_main_stats.offset_bottom = -20.0
+	stage.add_child(_main_stats)
+	_rebuild_stats()
 
-	var stats := _text(buttons, "%s: %d   |   %s: %d   |   %s: %d" % [
-		Loc.t("level"), int(SaveSystem.progress.get("level", 1)),
-		Loc.t("coins"), int(SaveSystem.progress.get("coins", 0)),
-		Loc.t("kills_total"), int(SaveSystem.progress.get("total_kills", 0))
-	], 15, MUTED)
-	stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var footer := _hero_label("تطوير GENSPARK  -  (C) 2026", 15, Color(0.48, 0.56, 0.68), 2)
+	footer.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	footer.anchor_top = 1.0
+	footer.anchor_bottom = 1.0
+	footer.anchor_left = 1.0
+	footer.anchor_right = 1.0
+	footer.offset_left = -430.0
+	footer.offset_top = -44.0
+	footer.offset_right = -56.0
+	footer.offset_bottom = -20.0
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	stage.add_child(footer)
+
+
+func _hero_label(text: String, font_size: int, color: Color, outline: int) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_override("font", load("res://assets/fonts/NotoSansArabic-Bold.ttf"))
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_constant_override("outline_size", outline)
+	label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.85))
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+
+func _hero_button(parent: Node, text: String, on_press: Callable, primary: bool = false) -> void:
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2(0, 64 if primary else 54)
+	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(holder)
+
+	var button_script := load("res://scripts/ui/hero_button.gd")
+	var button := Control.new()
+	button.set_script(button_script)
+	button.set_anchors_preset(Control.PRESET_FULL_RECT)
+	holder.add_child(button)
+	button.call("setup", text, primary, 28 if primary else 23)
+	button.connect("pressed", func():
+		AudioManager.play_ui("ui_click", -6.0)
+		on_press.call()
+	)
+
+
+func _draw_menu_bg(control: Control) -> void:
+	var w := control.size.x
+	var h := control.size.y
+	if w <= 0.0 or h <= 0.0:
+		return
+	var steps := 48
+	for index in steps:
+		var t := float(index) / float(steps - 1)
+		var color := Color(0.05, 0.09, 0.15).lerp(Color(0.01, 0.015, 0.025), t)
+		control.draw_rect(Rect2(0, h * float(index) / float(steps), w, h / float(steps) + 1.0), color)
+	# شبكة خفيفة توحي بشاشات القيادة
+	var grid := Color(0.35, 0.55, 0.85, 0.06)
+	for index in range(1, 18):
+		var x := w * float(index) / 18.0
+		control.draw_line(Vector2(x, 0), Vector2(x, h), grid, 1.0)
+	for index in range(1, 10):
+		var y := h * float(index) / 10.0
+		control.draw_line(Vector2(0, y), Vector2(w, y), grid, 1.0)
+	# توهج برتقالي خافت خلف عمود الأزرار
+	for index in 6:
+		var expand := float(index) * 26.0
+		control.draw_rect(Rect2(20.0 - expand * 0.5, 150.0 - expand * 0.5,
+				560.0 + expand, 640.0 + expand), Color(0.95, 0.55, 0.15, 0.012))
+	# ظل سفلي
+	control.draw_rect(Rect2(0, h - 90.0, w, 90.0), Color(0.0, 0.0, 0.0, 0.35))
 
 
 # --------------------------------------------------------------- الحملة
@@ -390,12 +553,26 @@ func _build_armory() -> void:
 	for weapon in WeaponsDB.guns():
 		var weapon_id := String(weapon["id"])
 		var unlocked := SaveSystem.is_weapon_unlocked(weapon_id)
+		var card := PanelContainer.new()
+		var card_style := StyleBoxFlat.new()
+		card_style.bg_color = Color(0.05, 0.08, 0.12, 0.75)
+		card_style.border_color = Color(0.85, 0.55, 0.20, 0.45)
+		card_style.border_width_left = 3
+		card_style.set_corner_radius_all(4)
+		card_style.content_margin_left = 16
+		card_style.content_margin_right = 16
+		card_style.content_margin_top = 10
+		card_style.content_margin_bottom = 10
+		card.add_theme_stylebox_override("panel", card_style)
+		box.add_child(card)
+
 		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
-		box.add_child(row)
+		row.add_theme_constant_override("separation", 14)
+		card.add_child(row)
 
 		var info := VBoxContainer.new()
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		info.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(info)
 		_text(info, Loc.t(String(weapon["name_key"])), 18, TEXT)
 		_text(info, Loc.t("armory_stats") % [int(weapon["damage"]), int(weapon["range"]),
@@ -404,13 +581,11 @@ func _build_armory() -> void:
 		if unlocked:
 			var equipped := SaveSystem.equipped() == weapon_id
 			var button := _button(row, Loc.t("armory_equipped") if equipped else Loc.t("armory_equip"),
-					func(): armory_equip_requested.emit(weapon_id))
-			button.custom_minimum_size = Vector2(140, 44)
+					func(): armory_equip_requested.emit(weapon_id), false, true)
 			button.disabled = equipped
 		else:
 			var button := _button(row, "%s (%d)" % [Loc.t("armory_unlock"), int(weapon["unlock_cost"])],
-					func(): armory_unlock_requested.emit(weapon_id))
-			button.custom_minimum_size = Vector2(160, 44)
+					func(): armory_unlock_requested.emit(weapon_id), false, true)
 
 	_button(box, Loc.t("menu_back"), func(): show_main())
 
@@ -453,6 +628,8 @@ func _build_settings() -> void:
 	language_select.item_selected.connect(func(index: int):
 		GameSettings.set_language("ar" if index == 0 else "en")
 	)
+	language_select.custom_minimum_size = Vector2(460, 46)
+	language_select.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	box.add_child(language_select)
 
 	box.add_child(HSeparator.new())
@@ -469,6 +646,8 @@ func _build_settings() -> void:
 	quality_select.item_selected.connect(func(index: int):
 		GameSettings.set_quality(String(order[index]))
 	)
+	quality_select.custom_minimum_size = Vector2(460, 46)
+	quality_select.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	box.add_child(quality_select)
 	_text(box, Loc.t("settings_auto_detected") + " (" + GameSettings.resolved_quality + ")",
 			13, MUTED)
@@ -599,7 +778,13 @@ func show_main() -> void:
 
 
 func _rebuild_stats() -> void:
-	pass
+	if _main_stats == null or not is_instance_valid(_main_stats):
+		return
+	_main_stats.text = "%s %d    %s %d    %s %d" % [
+		Loc.t("level"), int(SaveSystem.progress.get("level", 1)),
+		Loc.t("coins"), int(SaveSystem.progress.get("coins", 0)),
+		Loc.t("kills_total"), int(SaveSystem.progress.get("total_kills", 0))
+	]
 
 
 func show_missions() -> void:

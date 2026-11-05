@@ -122,7 +122,10 @@ func _process(delta: float) -> void:
 	if player == null or not is_instance_valid(player):
 		return
 
-	if player.is_in_vehicle():
+	# عند تفعيل أزرار اللمس لا نسمح للكيبورد بإلغاء إدخالها كل إطار
+	if _touch_mode():
+		_walk_touch(delta)
+	elif player.is_in_vehicle():
 		_drive_vehicle(delta)
 	else:
 		_walk_input(delta)
@@ -148,6 +151,22 @@ func _process(delta: float) -> void:
 		var offset := Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * _shake * 0.09
 		player.camera.h_offset = offset.x
 		player.camera.v_offset = offset.y
+
+
+func _touch_mode() -> bool:
+	return hud != null and is_instance_valid(hud) and hud.call("touch_controls_visible")
+
+
+func _walk_touch(_delta: float) -> void:
+	# الحركة والتصويب والإطلاق تأتي من لوحة اللمس، وهنا نضيف أفعال الشاشة/المركبة فقط
+	if player.is_in_vehicle() and player.current_vehicle != null:
+		SaveSystem.add_driving_time(_delta)
+		var vehicle = player.current_vehicle
+		if vehicle.has_method("set_throttle_from_touch"):
+			vehicle.call("set_throttle_from_touch", player.move_input)
+		else:
+			vehicle.set("throttle", clampf(-player.move_input.y, -1.0, 1.0))
+			vehicle.set("steer", clampf(player.move_input.x, -1.0, 1.0))
 
 
 func _walk_input(_delta: float) -> void:

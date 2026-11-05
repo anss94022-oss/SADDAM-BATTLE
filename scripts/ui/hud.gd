@@ -13,39 +13,52 @@ signal interact_pressed
 signal scope_pressed
 signal vehicle_camera_pressed
 
+# أزرار قليلة ومدروسة: الإطلاق/التصويب/القفز/التلقيم/تبديل السلاح/القنبلة/العلاج/الانحناء
+# والباقي يظهر فقط عند الحاجة (التفعيل قرب مركبة، كاميرا داخل مركبة).
 const TOUCH_BUTTONS := [
-	"fire", "aim", "reload", "weapon", "jump", "crouch",
-	"grenade", "heal", "interact", "sprint", "scope", "camera",
-	"autofire", "view"
+	"fire", "aim", "jump", "reload", "weapon", "grenade", "heal",
+	"crouch", "interact", "camera", "autofire", "view"
 ]
 
+# مقاسات مستقلة لكل زر (بالبكسل قبل معامل تكبير الإعدادات)
+const TOUCH_SIZES := {
+	"fire": 148.0, "aim": 104.0, "jump": 88.0, "reload": 92.0, "weapon": 84.0,
+	"grenade": 76.0, "heal": 76.0, "crouch": 74.0, "interact": 92.0,
+	"camera": 82.0, "autofire": 60.0, "view": 56.0
+}
+
+const TOUCH_FONTS := {
+	"fire": 26, "aim": 20, "jump": 19, "reload": 19, "weapon": 17,
+	"grenade": 15, "heal": 16, "crouch": 15, "interact": 18,
+	"camera": 16, "autofire": 13, "view": 13
+}
+
+# توزيع الإبهامين: يسار = عصا + انحناء، يمين = قوس إطلاق/تصويب/قفز ونظام تلقيم أسفله
 const DEFAULT_LAYOUT := {
-	"fire": {"x": 0.885, "y": 0.80},
-	"aim": {"x": 0.775, "y": 0.705},
-	"jump": {"x": 0.745, "y": 0.905},
-	"crouch": {"x": 0.625, "y": 0.925},
-	"reload": {"x": 0.915, "y": 0.625},
-	"weapon": {"x": 0.795, "y": 0.545},
-	"scope": {"x": 0.635, "y": 0.745},
-	"grenade": {"x": 0.605, "y": 0.575},
-	"heal": {"x": 0.515, "y": 0.865},
-	"interact": {"x": 0.515, "y": 0.695},
-	"sprint": {"x": 0.30, "y": 0.85},
-	"camera": {"x": 0.965, "y": 0.385},
-	"autofire": {"x": 0.90, "y": 0.255},
-	"view": {"x": 0.90, "y": 0.135}
+	"fire": {"x": 0.905, "y": 0.815},
+	"aim": {"x": 0.905, "y": 0.500},
+	"jump": {"x": 0.888, "y": 0.660},
+	"reload": {"x": 0.775, "y": 0.848},
+	"weapon": {"x": 0.668, "y": 0.888},
+	"grenade": {"x": 0.566, "y": 0.905},
+	"heal": {"x": 0.792, "y": 0.700},
+	"crouch": {"x": 0.052, "y": 0.930},
+	"interact": {"x": 0.300, "y": 0.790},
+	"camera": {"x": 0.905, "y": 0.355},
+	"autofire": {"x": 0.845, "y": 0.240},
+	"view": {"x": 0.945, "y": 0.240}
 }
 
 const BUTTON_LABELS := {
 	"fire": "touch_fire", "aim": "touch_aim", "reload": "touch_reload",
 	"weapon": "touch_weapon", "jump": "touch_jump", "crouch": "touch_crouch",
 	"grenade": "touch_grenade", "heal": "touch_heal", "interact": "touch_interact",
-	"sprint": "touch_sprint", "scope": "touch_scope", "camera": "touch_switch_view",
-	"autofire": "touch_autofire", "view": "touch_view"
+	"camera": "touch_switch_view", "autofire": "touch_autofire", "view": "touch_view"
 }
 
-const TOUCH_BASE_SIZE := 104.0
-const JOYSTICK_RADIUS := 96.0
+const TOUCH_BASE_SIZE := 92.0
+const JOYSTICK_RADIUS := 94.0
+const JOYSTICK_CENTER := Vector2(0.105, 0.745)
 
 var player: Node3D = null
 var mission_manager: Node = null
@@ -93,6 +106,7 @@ var _dragging := ""
 var _drag_offset := Vector2.ZERO
 
 var _hit_timer := 0.0
+var _last_aim_press := 0
 var _message_timer := 0.0
 var _suppress := false
 var _mission_bound := false
@@ -111,35 +125,40 @@ func _ready() -> void:
 func _build() -> void:
 	_root = Control.new()
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_root.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
 
 	# ---- شريط الصحة والدرع ----
 	var stats := VBoxContainer.new()
-	stats.position = Vector2(22, 18)
-	stats.size = Vector2(300, 90)
-	stats.add_theme_constant_override("separation", 4)
+	stats.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	stats.position = Vector2(-200, 8)
+	stats.size = Vector2(400, 100)
+	stats.add_theme_constant_override("separation", 3)
 	_root.add_child(stats)
 
-	_health_label = _label(Loc.t("hud_health") + " 100", 18, Color(0.92, 0.96, 1.0))
+	_health_label = _label(Loc.t("hud_health") + " 100", 20, Color(0.92, 0.96, 1.0))
+	_health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stats.add_child(_health_label)
-	_health_bar = _bar(Color(0.85, 0.24, 0.22), 300.0)
+	_health_bar = _bar(Color(0.85, 0.24, 0.22), 400.0)
+	_health_bar.custom_minimum_size = Vector2(400, 18)
 	stats.add_child(_health_bar)
 
 	_armor_label = _label(Loc.t("hud_armor") + " 100", 15, Color(0.65, 0.82, 1.0))
+	_armor_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stats.add_child(_armor_label)
-	_armor_bar = _bar(Color(0.30, 0.60, 0.95), 300.0)
-	_armor_bar.custom_minimum_size = Vector2(300, 10)
+	_armor_bar = _bar(Color(0.30, 0.60, 0.95), 400.0)
+	_armor_bar.custom_minimum_size = Vector2(400, 10)
 	stats.add_child(_armor_bar)
 
-	_stamina_bar = _bar(Color(0.55, 0.85, 0.45), 300.0)
-	_stamina_bar.custom_minimum_size = Vector2(300, 6)
+	_stamina_bar = _bar(Color(0.55, 0.85, 0.45), 400.0)
+	_stamina_bar.custom_minimum_size = Vector2(400, 5)
 	stats.add_child(_stamina_bar)
 
 	# ---- الهدف ----
 	_objective_label = _label("", 20, Color(0.97, 0.89, 0.62))
 	_objective_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_objective_label.position = Vector2(-260, 14)
+	_objective_label.position = Vector2(-260, 116)
 	_objective_label.size = Vector2(520, 30)
 	_objective_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_root.add_child(_objective_label)
@@ -158,13 +177,13 @@ func _build() -> void:
 	_progress_bar.add_theme_stylebox_override("fill", bar_fill)
 	_root.add_child(_progress_bar)
 	_progress_bar.offset_left = -140
-	_progress_bar.offset_top = 46
+	_progress_bar.offset_top = 150
 	_progress_bar.offset_right = 140
-	_progress_bar.offset_bottom = 52
+	_progress_bar.offset_bottom = 156
 
 	_timer_label = _label("", 16, Color(0.85, 0.92, 1.0))
 	_timer_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_timer_label.position = Vector2(-90, 56)
+	_timer_label.position = Vector2(-90, 160)
 	_timer_label.size = Vector2(180, 24)
 	_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_root.add_child(_timer_label)
@@ -186,17 +205,17 @@ func _build() -> void:
 	_root.add_child(_killfeed)
 
 	# ---- الذخيرة ----
-	_ammo_label = _label("", 34, Color(1.0, 0.94, 0.76))
-	_ammo_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_ammo_label.position = Vector2(-220, -146)
-	_ammo_label.size = Vector2(190, 42)
+	_ammo_label = _label("", 36, Color(1.0, 0.94, 0.76))
+	_ammo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_ammo_label.position = Vector2(-230, 128)
+	_ammo_label.size = Vector2(210, 46)
 	_ammo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_root.add_child(_ammo_label)
 
-	_weapon_label = _label("", 15, Color(0.82, 0.88, 0.97))
-	_weapon_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_weapon_label.position = Vector2(-220, -104)
-	_weapon_label.size = Vector2(190, 22)
+	_weapon_label = _label("", 18, Color(0.82, 0.88, 0.97))
+	_weapon_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_weapon_label.position = Vector2(-250, 100)
+	_weapon_label.size = Vector2(230, 26)
 	_weapon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_root.add_child(_weapon_label)
 
@@ -256,9 +275,12 @@ func _build() -> void:
 	_root.add_child(_scope_overlay)
 
 	_minimap = Control.new()
-	_minimap.position = Vector2(-186, 18)
-	_minimap.size = Vector2(160, 160)
-	_minimap.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_minimap.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	_minimap.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_minimap.offset_left = 18.0
+	_minimap.offset_top = 86.0
+	_minimap.offset_right = 226.0
+	_minimap.offset_bottom = 294.0
 	_minimap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_minimap.draw.connect(_draw_minimap)
 	_root.add_child(_minimap)
@@ -284,10 +306,24 @@ func _build() -> void:
 	# ---- زر الإيقاف ----
 	var pause_button := Button.new()
 	pause_button.text = "II"
+	pause_button.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	pause_button.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	pause_button.position = Vector2(22, 118)
-	pause_button.size = Vector2(46, 40)
+	pause_button.offset_left = 18.0
+	pause_button.offset_top = 14.0
+	pause_button.offset_right = 82.0
+	pause_button.offset_bottom = 78.0
 	pause_button.focus_mode = Control.FOCUS_NONE
+	var pause_style := StyleBoxFlat.new()
+	pause_style.bg_color = Color(0.04, 0.08, 0.12, 0.55)
+	pause_style.border_color = Color(0.75, 0.88, 1.0, 0.8)
+	pause_style.set_border_width_all(2)
+	pause_style.set_corner_radius_all(32)
+	var pause_pressed_style := pause_style.duplicate() as StyleBoxFlat
+	pause_pressed_style.bg_color = Color(0.30, 0.70, 1.0, 0.85)
+	pause_button.add_theme_stylebox_override("normal", pause_style)
+	pause_button.add_theme_stylebox_override("hover", pause_style)
+	pause_button.add_theme_stylebox_override("pressed", pause_pressed_style)
+	pause_button.add_theme_font_size_override("font_size", 24)
 	pause_button.pressed.connect(func(): pause_pressed.emit())
 	_root.add_child(pause_button)
 
@@ -339,6 +375,10 @@ func _bar(color: Color, width: float) -> ProgressBar:
 
 
 # ---------------------------------------------------------- أزرار اللمس
+func touch_controls_visible() -> bool:
+	return _touch_layer != null and _touch_layer.visible
+
+
 func _touch_available() -> bool:
 	return DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") \
 		or OS.has_feature("android")
@@ -357,17 +397,14 @@ func _build_touch_controls() -> void:
 	_touch_layer.add_child(_look_area)
 
 	_joystick_base = Control.new()
-	_joystick_base.custom_minimum_size = Vector2(TOUCH_BASE_SIZE * 1.5, TOUCH_BASE_SIZE * 1.5)
-	_joystick_base.size = Vector2(TOUCH_BASE_SIZE * 1.5, TOUCH_BASE_SIZE * 1.5)
-	_joystick_base.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	_joystick_base.position = Vector2(30, -TOUCH_BASE_SIZE * 1.5 - 30)
+	_joystick_base.size = Vector2(JOYSTICK_RADIUS * 2.0, JOYSTICK_RADIUS * 2.0)
 	_joystick_base.mouse_filter = Control.MOUSE_FILTER_STOP
 	_joystick_base.draw.connect(_draw_joystick_base)
 	_joystick_base.gui_input.connect(_on_joystick_input)
 	_touch_layer.add_child(_joystick_base)
 
 	_joystick_knob = Control.new()
-	_joystick_knob.size = Vector2(54, 54)
+	_joystick_knob.size = Vector2(56, 56)
 	_joystick_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_joystick_knob.draw.connect(_draw_joystick_knob)
 	_joystick_base.add_child(_joystick_knob)
@@ -376,27 +413,43 @@ func _build_touch_controls() -> void:
 		var button := Button.new()
 		button.text = Loc.t(String(BUTTON_LABELS.get(name, name)))
 		button.focus_mode = Control.FOCUS_NONE
-		button.size = Vector2(TOUCH_BASE_SIZE, TOUCH_BASE_SIZE)
+		var base_size := float(TOUCH_SIZES.get(name, TOUCH_BASE_SIZE))
+		button.size = Vector2(base_size, base_size)
 		button.set_meta("touch_name", name)
-		_style_button(button, name in ["fire", "aim"])
+		_style_button(button, name in ["fire", "aim"], name)
 		_connect_button(button, name)
 		_touch_layer.add_child(button)
 		_buttons[name] = button
 
+	# أزرار تظهر عند الحاجة فقط حتى تبقى الشاشة نظيفة
+	for hidden_by_default in ["interact", "camera"]:
+		var hidden_button = _buttons.get(hidden_by_default)
+		if hidden_button != null:
+			(hidden_button as Button).visible = false
+	_reset_joystick()
 
-func _style_button(button: Button, primary: bool) -> void:
-	var alpha := 0.32 + GameSettings.sfx_volume * 0.0
+
+func _style_button(button: Button, primary: bool, name: String = "") -> void:
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.06, 0.18, 0.28, 0.62 if primary else 0.52)
-	normal.border_color = Color(0.80, 0.93, 1.0, 0.95)
-	normal.set_border_width_all(3)
-	normal.set_corner_radius_all(62)
+	# زر الإطلاق أوضح وأخضر خفيف ليكون هو المرجع البصري لليد اليمنى
+	if name == "fire":
+		normal.bg_color = Color(0.10, 0.35, 0.20, 0.55)
+		normal.border_color = Color(0.55, 1.0, 0.70, 0.95)
+	elif primary:
+		normal.bg_color = Color(0.06, 0.22, 0.34, 0.52)
+		normal.border_color = Color(0.72, 0.90, 1.0, 0.90)
+	else:
+		normal.bg_color = Color(0.04, 0.09, 0.14, 0.48)
+		normal.border_color = Color(0.72, 0.86, 0.98, 0.75)
+	normal.set_border_width_all(3 if primary else 2)
+	var radius := int((TOUCH_SIZES.get(name, TOUCH_BASE_SIZE)) * 0.5)
+	normal.set_corner_radius_all(radius)
 	var pressed_style := normal.duplicate() as StyleBoxFlat
-	pressed_style.bg_color = Color(0.28, 0.68, 1.0, 0.85)
+	pressed_style.bg_color = Color(0.32, 0.75, 1.0, 0.85)
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", normal)
 	button.add_theme_stylebox_override("pressed", pressed_style)
-	button.add_theme_font_size_override("font_size", 21)
+	button.add_theme_font_size_override("font_size", int(TOUCH_FONTS.get(name, 18)))
 
 
 func _connect_button(button: Button, name: String) -> void:
@@ -414,6 +467,11 @@ func _connect_button(button: Button, name: String) -> void:
 			button.button_down.connect(func():
 				if player != null:
 					player.set_aiming(true)
+				# ضغطتان سريعتان تبدّلان تقريب المنظار بدون زر إضافي
+				var now := Time.get_ticks_msec()
+				if now - _last_aim_press < 320:
+					scope_pressed.emit()
+				_last_aim_press = now
 			)
 			button.button_up.connect(func():
 				if player != null:
@@ -433,17 +491,6 @@ func _connect_button(button: Button, name: String) -> void:
 			button.pressed.connect(func(): heal_pressed.emit())
 		"interact":
 			button.pressed.connect(func(): interact_pressed.emit())
-		"sprint":
-			button.button_down.connect(func():
-				if player != null:
-					player.set_sprinting(true)
-			)
-			button.button_up.connect(func():
-				if player != null:
-					player.set_sprinting(false)
-			)
-		"scope":
-			button.pressed.connect(func(): scope_pressed.emit())
 		"camera":
 			button.pressed.connect(func(): vehicle_camera_pressed.emit())
 		"autofire":
@@ -470,13 +517,19 @@ func _apply_layout() -> void:
 func _apply_positions() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size if get_viewport() != null else Vector2(1280, 720)
 	var scale := GameSettings.touch_scale
-	var size := TOUCH_BASE_SIZE * scale
 	for name in _buttons.keys():
 		var button: Button = _buttons[name]
 		var entry: Dictionary = _layout.get(name, DEFAULT_LAYOUT.get(name, {"x": 0.8, "y": 0.8}))
+		var size := float(TOUCH_SIZES.get(name, TOUCH_BASE_SIZE)) * scale
 		button.size = Vector2(size, size)
 		button.position = Vector2(viewport_size.x * float(entry.get("x", 0.8)),
 				viewport_size.y * float(entry.get("y", 0.8))) - button.size * 0.5
+	if _joystick_base != null:
+		var joy_size := JOYSTICK_RADIUS * 2.0 * scale
+		_joystick_base.size = Vector2(joy_size, joy_size)
+		_joystick_base.position = Vector2(viewport_size.x * JOYSTICK_CENTER.x,
+				viewport_size.y * JOYSTICK_CENTER.y) - _joystick_base.size * 0.5
+		_reset_joystick()
 
 
 func refresh_layout() -> void:
@@ -486,11 +539,13 @@ func refresh_layout() -> void:
 
 
 func resize_layout(viewport_size: Vector2) -> void:
-	for name in _buttons.keys():
-		var button: Button = _buttons[name]
-		var entry: Dictionary = _layout.get(name, DEFAULT_LAYOUT.get(name, {"x": 0.8, "y": 0.8}))
-		button.position = Vector2(viewport_size.x * float(entry.get("x", 0.8)),
-				viewport_size.y * float(entry.get("y", 0.8))) - button.size * 0.5
+	_apply_positions()
+	# احتياط: إن اختلف حجم الـviewport عن المقروء داخل _apply_positions
+	if _joystick_base != null:
+		var scale := GameSettings.touch_scale
+		var joy_size := JOYSTICK_RADIUS * 2.0 * scale
+		_joystick_base.position = Vector2(viewport_size.x * JOYSTICK_CENTER.x,
+				viewport_size.y * JOYSTICK_CENTER.y) - Vector2(joy_size, joy_size) * 0.5
 
 
 # ------------------------------------------------------------------ ربط
@@ -586,10 +641,12 @@ func _on_weapon_changed(weapon_name: String, _weapon_id: String) -> void:
 
 func _on_grenades_changed(count: int) -> void:
 	_grenade_label.text = "%s x%d" % [Loc.t("touch_grenade"), count]
+	_set_button_visible("grenade", count > 0)
 
 
 func _on_medkits_changed(count: int) -> void:
 	_medkit_label.text = "%s x%d" % [Loc.t("touch_heal"), count]
+	_set_button_visible("heal", count > 0)
 
 
 func _on_timer_updated(seconds_left: int) -> void:
@@ -612,23 +669,29 @@ func _on_damaged_from(direction: Vector3) -> void:
 
 
 func _on_interact_available(text: String) -> void:
-	_interact_label.text = "[E] " + text
+	_interact_label.text = text
 	_interact_label.visible = true
-	var interact_button = _buttons.get("interact")
-	if interact_button != null:
-		(interact_button as Button).modulate = Color(1.0, 1.0, 0.6)
+	_set_button_visible("interact", true)
 
 
 func _on_interact_cleared() -> void:
 	_interact_label.visible = false
-	var interact_button = _buttons.get("interact")
-	if interact_button != null:
-		(interact_button as Button).modulate = Color.WHITE
+	_set_button_visible("interact", false)
+
+
+func _set_button_visible(button_name: String, value: bool) -> void:
+	var button = _buttons.get(button_name)
+	if button != null:
+		(button as Button).visible = value
 
 
 func _on_entered_vehicle(vehicle: Node) -> void:
 	_vehicle_panel.visible = true
 	_crosshair.visible = false
+	_set_button_visible("camera", true)
+	_set_button_visible("jump", false)
+	_set_button_visible("crouch", false)
+	_set_button_visible("view", false)
 	if vehicle.has_method("get") and vehicle.get("max_health") != null:
 		_vehicle_health.max_value = float(vehicle.get("max_health"))
 		_vehicle_health.value = float(vehicle.get("health"))
@@ -637,6 +700,10 @@ func _on_entered_vehicle(vehicle: Node) -> void:
 func _on_exited_vehicle() -> void:
 	_vehicle_panel.visible = false
 	_crosshair.visible = true
+	_set_button_visible("camera", false)
+	_set_button_visible("jump", true)
+	_set_button_visible("crouch", true)
+	_set_button_visible("view", true)
 
 
 func _flash_damage(alpha: float) -> void:
@@ -733,14 +800,14 @@ func _draw_scope() -> void:
 
 func _draw_joystick_base() -> void:
 	var center := _joystick_base.size * 0.5
-	var radius := JOYSTICK_RADIUS * GameSettings.touch_scale
-	_joystick_base.draw_circle(center, radius, Color(0.05, 0.12, 0.2, 0.35))
-	_joystick_base.draw_arc(center, radius, 0, TAU, 48, Color(0.55, 0.8, 1.0, 0.55), 2.0)
+	var radius := _joystick_base.size.x * 0.5
+	_joystick_base.draw_circle(center, radius, Color(0.05, 0.12, 0.2, 0.30))
+	_joystick_base.draw_arc(center, radius - 2.0, 0, TAU, 56, Color(0.55, 0.8, 1.0, 0.45), 2.0)
 
 
 func _draw_joystick_knob() -> void:
 	var center := _joystick_knob.size * 0.5
-	_joystick_knob.draw_circle(center, 26, Color(0.38, 0.72, 1.0, 0.75))
+	_joystick_knob.draw_circle(center, 28, Color(0.38, 0.72, 1.0, 0.70))
 
 
 # --------------------------------------------------------------- الإدخال
@@ -802,18 +869,21 @@ func _on_joystick_input(event: InputEvent) -> void:
 func _update_joystick(local_position: Vector2) -> void:
 	var center := _joystick_base.size * 0.5
 	var offset := local_position - center
-	var radius := JOYSTICK_RADIUS * GameSettings.touch_scale
+	var radius := _joystick_base.size.x * 0.5
 	if offset.length() > radius:
 		offset = offset.normalized() * radius
 	_joystick_knob.position = center + offset - _joystick_knob.size * 0.5
 	if player != null:
 		player.set_move_input(Vector2(offset.x, offset.y) / radius)
+		# دفع العصا لآخرها = ركض تلقائي، بدون زر إضافي
+		player.set_sprinting(offset.length() > radius * 0.92)
 
 
 func _reset_joystick() -> void:
 	_joystick_knob.position = _joystick_base.size * 0.5 - _joystick_knob.size * 0.5
 	if player != null:
 		player.set_move_input(Vector2.ZERO)
+		player.set_sprinting(false)
 
 
 # ------------------------------------------------------- تخصيص التخطيط

@@ -17,6 +17,21 @@ func _ready() -> void:
 		main.menu.show_main()
 		for _i in 30:
 			await get_tree().process_frame
+	elif mode == "armory":
+		main.menu.show_main()
+		main.menu.show_armory()
+		for _i in 30:
+			await get_tree().process_frame
+	elif mode == "settings":
+		main.menu.show_main()
+		main.menu.show_settings()
+		for _i in 30:
+			await get_tree().process_frame
+	elif mode == "missions":
+		main.menu.show_main()
+		main.menu.show_missions()
+		for _i in 30:
+			await get_tree().process_frame
 	else:
 		main._start_mission(mission)
 		for _i in 60:
