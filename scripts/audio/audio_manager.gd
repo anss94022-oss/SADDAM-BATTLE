@@ -66,7 +66,7 @@ func _load_stream(path: String) -> AudioStream:
 		return _cache[path]
 	if not ResourceLoader.exists(path):
 		return null
-	var stream := load(path)
+	var stream: AudioStream = load(path)
 	if stream != null:
 		_cache[path] = stream
 	return stream
@@ -104,12 +104,11 @@ func play_3d(sound: String, position: Vector3, volume_db: float = 0.0,
 	player.global_position = position
 	player.play()
 
-	var length := stream.get_length() / max(0.4, player.pitch_scale)
+	var length: float = float(stream.get_length()) / maxf(0.4, player.pitch_scale)
 	player.finished.connect(player.queue_free)
-	tree.create_timer(max(0.05, length + 0.15)).timeout.connect(func():
-		if is_instance_valid(player):
-			player.queue_free()
-	)
+	var ttl := player.create_tween()
+	ttl.tween_interval(maxf(0.05, length + 0.15))
+	ttl.tween_callback(player.queue_free)
 	return player
 
 

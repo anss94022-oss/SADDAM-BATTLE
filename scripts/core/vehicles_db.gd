@@ -31,7 +31,7 @@ func load_data() -> bool:
 		var id := String(entry.get("id", ""))
 		if id == "":
 			continue
-		var data := entry.duplicate(true)
+		var data: Dictionary = entry.duplicate(true)
 		data["max_speed"] = float(data.get("max_speed", 20.0))
 		data["reverse_speed"] = float(data.get("reverse_speed", 7.0))
 		data["acceleration"] = float(data.get("acceleration", 9.0))

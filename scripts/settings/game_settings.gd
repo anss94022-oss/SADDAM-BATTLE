@@ -147,6 +147,11 @@ func set_quality(value: String) -> void:
 	apply_video()
 
 
+## هل يوجد معالج رسومات حقيقي؟ (تشغيل الاختبارات headless بلا رسومات)
+func has_renderer() -> bool:
+	return DisplayServer.get_name() != "headless"
+
+
 func is_ultra() -> bool:
 	return resolved_quality == QUALITY_ULTRA
 
@@ -211,7 +216,7 @@ func apply_audio() -> void:
 
 
 func apply_locale() -> void:
-	var locale := get_node_or_null("/root/Locale")
+	var locale := get_node_or_null("/root/Loc")
 	if locale != null and locale.language != language:
 		locale.set_language(language)
 

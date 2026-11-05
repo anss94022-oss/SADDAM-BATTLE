@@ -164,10 +164,9 @@ func _die(headshot: bool) -> void:
 
 	if not _death_done:
 		_death_done = true
-		get_tree().create_timer(6.0).timeout.connect(func():
-			if is_instance_valid(self):
-				queue_free()
-		)
+		var cleanup := create_tween()
+		cleanup.tween_interval(6.0)
+		cleanup.tween_callback(queue_free)
 
 
 # ------------------------------------------------------------------ الذكاء
@@ -497,10 +496,9 @@ func _attack(distance: float) -> void:
 
 	if _muzzle_light != null:
 		_muzzle_light.light_energy = 3.0
-		get_tree().create_timer(0.05).timeout.connect(func():
-			if is_instance_valid(_muzzle_light):
-				_muzzle_light.light_energy = 0.0
-		)
+		var muzzle_tween := _muzzle_light.create_tween()
+		muzzle_tween.tween_interval(0.05)
+		muzzle_tween.tween_property(_muzzle_light, "light_energy", 0.0, 0.01)
 
 	AudioManager.play_3d(String(_weapon.get("sound", "shot_rifle")),
 			global_position + Vector3(0, 1.4, 0), -4.0, randf_range(0.95, 1.05))

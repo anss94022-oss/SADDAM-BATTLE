@@ -262,6 +262,18 @@ func animate(delta: float, speed: float, is_sprinting: bool,
 		_torso.rotation.x += kick * 0.5
 
 
+func flash_damage() -> void:
+	if _torso == null:
+		return
+	var mat := _material(Color(0.8, 0.25, 0.2), 0.6)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.15, 0.1)
+	mat.emission_energy_multiplier = 2.5
+	var flash_tween := create_tween()
+	flash_tween.tween_interval(0.09)
+	flash_tween.tween_callback(func(): mat.emission_enabled = false)
+
+
 func play_death() -> void:
 	if dead or _body_root == null:
 		return

@@ -545,10 +545,9 @@ func _muzzle_flash() -> void:
 	light.light_energy = 4.0
 	light.omni_range = 7.0
 	muzzle.add_child(light)
-	get_tree().create_timer(0.05).timeout.connect(func():
-		if is_instance_valid(light):
-			light.queue_free()
-	)
+	var flash_tween := light.create_tween()
+	flash_tween.tween_interval(0.05)
+	flash_tween.tween_callback(light.queue_free)
 
 
 func _spawn_impact(position: Vector3) -> void:
@@ -564,10 +563,9 @@ func _spawn_impact(position: Vector3) -> void:
 	impact.material_override = mat
 	get_tree().current_scene.add_child(impact)
 	impact.global_position = position
-	get_tree().create_timer(0.9).timeout.connect(func():
-		if is_instance_valid(impact):
-			impact.queue_free()
-	)
+	var impact_tween := impact.create_tween()
+	impact_tween.tween_interval(0.9)
+	impact_tween.tween_callback(impact.queue_free)
 
 
 # ------------------------------------------------------------- القنابل/العلاج

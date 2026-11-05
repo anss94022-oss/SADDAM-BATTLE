@@ -1,0 +1,18 @@
+SADDAM BATTLE — Proprietary License
+Copyright (c) 2026 Mohamd Aamaan. All rights reserved.
+
+This repository and its contents (source code, game data, generated art,
+generated audio, and documentation) are proprietary. No permission is granted
+to copy, modify, distribute, sublicense, or sell any part of it without the
+prior written consent of the copyright holder.
+
+THIRD-PARTY COMPONENTS
+- Noto Sans Arabic font (assets/fonts/*.ttf): SIL Open Font License 1.1,
+  see assets/fonts/OFL.txt. Copyright The Noto Project Authors.
+- All textures in assets/textures/ and all audio in assets/audio/ were
+  generated procedurally by the scripts in tools/ (gen_textures.py,
+  gen_audio.py) and are covered by this license.
+- Menu key art (assets/characters/hero_key.png) was generated for this
+  project and is covered by this license.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.

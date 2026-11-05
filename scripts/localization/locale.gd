@@ -58,7 +58,7 @@ func current_table() -> Dictionary:
 
 
 ## ترجمة نص حسب المفتاح، مع دعم تنسيق المعاملات.
-func t(key: String, ...args: Array) -> String:
+func t(key: String, args: Array = []) -> String:
 	var table: Dictionary = _tables.get(language, {})
 	var text := String(table.get(key, ""))
 	if text == "":
