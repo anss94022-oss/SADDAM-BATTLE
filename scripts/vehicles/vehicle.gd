@@ -165,7 +165,7 @@ func _build_meshes() -> void:
 		return
 
 	if vehicle_id in ["car_super", "car_super2"]:
-		_build_supercar(Color(0.06, 0.06, 0.08) if vehicle_id == "car_super" else Color(0.65, 0.05, 0.05))
+		_build_supercar(Color(0.26, 0.28, 0.34) if vehicle_id == "car_super" else Color(0.72, 0.06, 0.06))
 		return
 
 	if _build_gltf_model():
@@ -278,43 +278,42 @@ func _build_meshes() -> void:
 func _build_supercar(paint: Color) -> void:
 	var glass_color := Color(0.05, 0.07, 0.10)
 	# الهيكل السفلي
-	_box(self, Vector3(1.98, 0.40, 4.40), Vector3(0, 0.46, 0), paint)
+	_box(self, Vector3(2.24, 0.46, 4.95), Vector3(0, 0.52, 0), paint)
 	# مقدمة منخفضة
-	_box(self, Vector3(1.86, 0.26, 1.30), Vector3(0, 0.52, -1.72), paint.darkened(0.06))
+	_box(self, Vector3(2.10, 0.30, 1.46), Vector3(0, 0.58, -1.94), paint.darkened(0.06))
 	# مؤخرة مرتفعة
-	_box(self, Vector3(1.94, 0.34, 1.20), Vector3(0, 0.60, 1.62), paint.darkened(0.04))
+	_box(self, Vector3(2.20, 0.38, 1.35), Vector3(0, 0.68, 1.82), paint.darkened(0.04))
 	# أقواس العجلات
-	_box(self, Vector3(2.06, 0.30, 1.10), Vector3(0, 0.42, -1.46), paint.darkened(0.10))
-	_box(self, Vector3(2.10, 0.34, 1.20), Vector3(0, 0.44, 1.46), paint.darkened(0.10))
-	# الكابينة الزجاجية المائلة
-	var cabin := _box(self, Vector3(1.46, 0.40, 1.86), Vector3(0, 0.86, 0.15), glass_color)
-	cabin.rotation_degrees = Vector3(0, 0, 0)
+	_box(self, Vector3(2.34, 0.34, 1.24), Vector3(0, 0.47, -1.64), paint.darkened(0.10))
+	_box(self, Vector3(2.38, 0.38, 1.35), Vector3(0, 0.49, 1.64), paint.darkened(0.10))
+	# الكابينة الزجاجية
+	var cabin := _box(self, Vector3(1.66, 0.46, 2.10), Vector3(0, 0.98, 0.17), glass_color)
 	cabin.material_override = _material(glass_color, 0.0)
 	(cabin.material_override as StandardMaterial3D).roughness = 0.12
 	(cabin.material_override as StandardMaterial3D).metallic = 0.5
 	# سقف
-	_box(self, Vector3(1.30, 0.10, 1.10), Vector3(0, 1.06, 0.18), paint.darkened(0.02))
-	# صاري خلفي وسقف انسيابي
-	_box(self, Vector3(1.52, 0.16, 0.90), Vector3(0, 0.80, 1.24), paint.darkened(0.03))
+	_box(self, Vector3(1.48, 0.12, 1.24), Vector3(0, 1.20, 0.20), paint.darkened(0.02))
+	# صاري خلفي
+	_box(self, Vector3(1.72, 0.18, 1.02), Vector3(0, 0.90, 1.40), paint.darkened(0.03))
 	# جنح خلفي
-	_box(self, Vector3(1.96, 0.07, 0.46), Vector3(0, 1.02, 2.02), paint.darkened(0.14))
-	_box(self, Vector3(0.10, 0.26, 0.16), Vector3(-0.62, 0.90, 2.02), Color(0.10, 0.10, 0.12))
-	_box(self, Vector3(0.10, 0.26, 0.16), Vector3(0.62, 0.90, 2.02), Color(0.10, 0.10, 0.12))
+	_box(self, Vector3(2.22, 0.08, 0.52), Vector3(0, 1.15, 2.28), paint.darkened(0.14))
+	_box(self, Vector3(0.11, 0.30, 0.18), Vector3(-0.70, 1.01, 2.28), Color(0.10, 0.10, 0.12))
+	_box(self, Vector3(0.11, 0.30, 0.18), Vector3(0.70, 1.01, 2.28), Color(0.10, 0.10, 0.12))
 	# مشتت أمامي وألواح جانبية
-	_box(self, Vector3(1.90, 0.08, 0.42), Vector3(0, 0.30, -2.10), Color(0.08, 0.08, 0.09))
-	_box(self, Vector3(2.04, 0.10, 2.60), Vector3(0, 0.28, 0.05), Color(0.08, 0.08, 0.09))
+	_box(self, Vector3(2.15, 0.09, 0.48), Vector3(0, 0.34, -2.37), Color(0.08, 0.08, 0.09))
+	_box(self, Vector3(2.30, 0.11, 2.92), Vector3(0, 0.31, 0.05), Color(0.08, 0.08, 0.09))
 	# مصابيح أمامية
-	_box(self, Vector3(0.46, 0.10, 0.12), Vector3(-0.62, 0.60, -2.30), Color(1.0, 0.95, 0.85))
-	_box(self, Vector3(0.46, 0.10, 0.12), Vector3(0.62, 0.60, -2.30), Color(1.0, 0.95, 0.85))
-	# مصابيح خلفية مضيئة
-	_box(self, Vector3(1.60, 0.08, 0.08), Vector3(0, 0.72, 2.24), Color(1.0, 0.15, 0.12))
+	_box(self, Vector3(0.52, 0.11, 0.14), Vector3(-0.70, 0.68, -2.60), Color(1.0, 0.95, 0.85))
+	_box(self, Vector3(0.52, 0.11, 0.14), Vector3(0.70, 0.68, -2.60), Color(1.0, 0.95, 0.85))
+	# مصابيح خلفية
+	_box(self, Vector3(1.80, 0.09, 0.09), Vector3(0, 0.81, 2.52), Color(1.0, 0.15, 0.12))
 	# عجلات كبيرة
-	var wheel_radius := 0.46
+	var wheel_radius := 0.54
 	for side in [-1.0, 1.0]:
-		_wheel(Vector3(0.96 * side, wheel_radius, -1.46), wheel_radius, true)
-		_wheel(Vector3(0.98 * side, wheel_radius, 1.46), wheel_radius + 0.03, false)
+		_wheel(Vector3(1.06 * side, wheel_radius, -1.64), wheel_radius, true)
+		_wheel(Vector3(1.08 * side, wheel_radius, 1.64), wheel_radius + 0.03, false)
 
-	_seat_positions = [Vector3(0, 1.05, -0.1), Vector3(0, 1.05, 0.55)]
+	_seat_positions = [Vector3(0, 1.15, -0.1), Vector3(0, 1.15, 0.6)]
 	_camera_mode = 0
 	_using_model = false
 

@@ -216,8 +216,8 @@
       "health": 200.0,
       "seats": 2,
       "engine": "engine_car_loop",
-      "camera_distance": 9.5,
-      "camera_height": 3.4
+      "camera_distance": 7.6,
+      "camera_height": 3.0
     },
     {
       "id": "car_super2",
@@ -232,8 +232,8 @@
       "health": 190.0,
       "seats": 2,
       "engine": "engine_car_loop",
-      "camera_distance": 9.5,
-      "camera_height": 3.4
+      "camera_distance": 7.6,
+      "camera_height": 3.0
     }
   ]
 }
