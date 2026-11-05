@@ -13,7 +13,22 @@ func _ready() -> void:
 	for _i in 10:
 		await get_tree().process_frame
 
-	if mode == "menu":
+	if mode == "drive":
+		main._start_mission(mission)
+		for _i in 40:
+			await get_tree().process_frame
+		if main.hud != null:
+			main.hud._touch_layer.visible = true
+			main.hud.refresh_layout()
+		if main.player != null and main.vehicles.size() > 0:
+			var vehicle = main.vehicles[0]
+			main.player.enter_vehicle(vehicle, true)
+			vehicle.set("throttle", 1.0)
+			for _i in 20:
+				await get_tree().process_frame
+			vehicle.set("throttle", 0.0)
+			await get_tree().process_frame
+	elif mode == "menu":
 		main.menu.show_main()
 		for _i in 30:
 			await get_tree().process_frame

@@ -12,25 +12,29 @@ signal heal_pressed
 signal interact_pressed
 signal scope_pressed
 signal vehicle_camera_pressed
+signal gas_pressed(value: bool)
+signal brake_pressed(value: bool)
+signal exit_vehicle_pressed
 
 # أزرار قليلة ومدروسة: الإطلاق/التصويب/القفز/التلقيم/تبديل السلاح/القنبلة/العلاج/الانحناء
 # والباقي يظهر فقط عند الحاجة (التفعيل قرب مركبة، كاميرا داخل مركبة).
 const TOUCH_BUTTONS := [
 	"fire", "aim", "jump", "reload", "weapon", "grenade", "heal",
-	"crouch", "interact", "camera", "autofire", "view"
+	"crouch", "interact", "camera", "autofire", "view", "gas", "brake", "exit"
 ]
 
 # مقاسات مستقلة لكل زر (بالبكسل قبل معامل تكبير الإعدادات)
 const TOUCH_SIZES := {
 	"fire": 148.0, "aim": 104.0, "jump": 88.0, "reload": 92.0, "weapon": 84.0,
 	"grenade": 76.0, "heal": 76.0, "crouch": 74.0, "interact": 92.0,
-	"camera": 82.0, "autofire": 60.0, "view": 56.0
+	"camera": 82.0, "autofire": 60.0, "view": 56.0,
+	"gas": 108.0, "brake": 96.0, "exit": 70.0
 }
 
 const TOUCH_FONTS := {
 	"fire": 26, "aim": 20, "jump": 19, "reload": 19, "weapon": 17,
 	"grenade": 15, "heal": 16, "crouch": 15, "interact": 18,
-	"camera": 16, "autofire": 13, "view": 13
+	"camera": 16, "autofire": 13, "view": 13, "gas": 18, "brake": 18, "exit": 14
 }
 
 # توزيع الإبهامين: يسار = عصا + انحناء، يمين = قوس إطلاق/تصويب/قفز ونظام تلقيم أسفله
@@ -46,14 +50,18 @@ const DEFAULT_LAYOUT := {
 	"interact": {"x": 0.300, "y": 0.790},
 	"camera": {"x": 0.905, "y": 0.355},
 	"autofire": {"x": 0.845, "y": 0.240},
-	"view": {"x": 0.945, "y": 0.240}
+	"view": {"x": 0.945, "y": 0.240},
+	"gas": {"x": 0.878, "y": 0.795},
+	"brake": {"x": 0.878, "y": 0.565},
+	"exit": {"x": 0.700, "y": 0.880}
 }
 
 const BUTTON_LABELS := {
 	"fire": "touch_fire", "aim": "touch_aim", "reload": "touch_reload",
 	"weapon": "touch_weapon", "jump": "touch_jump", "crouch": "touch_crouch",
 	"grenade": "touch_grenade", "heal": "touch_heal", "interact": "touch_interact",
-	"camera": "touch_switch_view", "autofire": "touch_autofire", "view": "touch_view"
+	"camera": "touch_switch_view", "autofire": "touch_autofire", "view": "touch_view",
+	"gas": "touch_sprint", "brake": "touch_crouch", "exit": "hud_exit_vehicle"
 }
 
 const TOUCH_BASE_SIZE := 92.0
@@ -423,7 +431,7 @@ func _build_touch_controls() -> void:
 		_buttons[name] = button
 
 	# أزرار تظهر عند الحاجة فقط حتى تبقى الشاشة نظيفة
-	for hidden_by_default in ["interact", "camera"]:
+	for hidden_by_default in ["interact", "camera", "gas", "brake", "exit"]:
 		var hidden_button = _buttons.get(hidden_by_default)
 		if hidden_button != null:
 			(hidden_button as Button).visible = false
@@ -509,6 +517,25 @@ func _draw_touch_icon(button: Button, icon: String) -> void:
 			button.draw_arc(c, r * 0.34, 0, TAU, 24, Color(1, 1, 1, 0.75), thick * 0.8)
 			button.draw_circle(c, r * 0.10, white)
 			button.draw_line(c + Vector2(-r * 0.45, -r * 0.30), c + Vector2(-r * 0.20, -r * 0.12), Color(1, 1, 1, 0.7), thick * 0.7)
+		"gas":
+			button.draw_line(c + Vector2(0, r * 0.42), c + Vector2(0, -r * 0.38), white, thick)
+			button.draw_line(c + Vector2(0, -r * 0.38), c + Vector2(-r * 0.30, -r * 0.06), white, thick)
+			button.draw_line(c + Vector2(0, -r * 0.38), c + Vector2(r * 0.30, -r * 0.06), white, thick)
+			button.draw_line(c + Vector2(0, r * 0.04), c + Vector2(-r * 0.24, r * 0.36), white, thick * 0.7)
+			button.draw_line(c + Vector2(0, r * 0.04), c + Vector2(r * 0.24, r * 0.36), white, thick * 0.7)
+		"brake":
+			button.draw_line(c + Vector2(0, -r * 0.42), c + Vector2(0, r * 0.38), white, thick)
+			button.draw_line(c + Vector2(0, r * 0.38), c + Vector2(-r * 0.30, r * 0.06), white, thick)
+			button.draw_line(c + Vector2(0, r * 0.38), c + Vector2(r * 0.30, r * 0.06), white, thick)
+			button.draw_line(c + Vector2(0, -r * 0.04), c + Vector2(-r * 0.24, -r * 0.36), white, thick * 0.7)
+			button.draw_line(c + Vector2(0, -r * 0.04), c + Vector2(r * 0.24, -r * 0.36), white, thick * 0.7)
+		"exit":
+			button.draw_rect(Rect2(c + Vector2(-r * 0.38, -r * 0.38), Vector2(r * 0.44, r * 0.76)),
+					Color(1, 1, 1, 0.85), false, thick * 0.8)
+			button.draw_line(c + Vector2(-r * 0.08, 0), c + Vector2(r * 0.34, 0), white, thick * 0.9)
+			button.draw_colored_polygon(PackedVector2Array([
+				c + Vector2(r * 0.16, -r * 0.22), c + Vector2(r * 0.46, 0), c + Vector2(r * 0.16, r * 0.22)
+			]), white)
 		"view":
 			button.draw_arc(c, r * 0.30, 0, TAU, 24, Color(1, 1, 1, 0.80), thick * 0.8)
 			button.draw_circle(c, r * 0.09, white)
@@ -557,6 +584,14 @@ func _connect_button(button: Button, name: String) -> void:
 			button.pressed.connect(func(): interact_pressed.emit())
 		"camera":
 			button.pressed.connect(func(): vehicle_camera_pressed.emit())
+		"gas":
+			button.button_down.connect(func(): gas_pressed.emit(true))
+			button.button_up.connect(func(): gas_pressed.emit(false))
+		"brake":
+			button.button_down.connect(func(): brake_pressed.emit(true))
+			button.button_up.connect(func(): brake_pressed.emit(false))
+		"exit":
+			button.pressed.connect(func(): exit_vehicle_pressed.emit())
 		"autofire":
 			button.toggle_mode = true
 			button.toggled.connect(func(value: bool):
@@ -754,9 +789,18 @@ func _on_entered_vehicle(vehicle: Node) -> void:
 	_vehicle_panel.visible = true
 	_crosshair.visible = false
 	_set_button_visible("camera", true)
+	_set_button_visible("gas", true)
+	_set_button_visible("brake", true)
+	_set_button_visible("exit", true)
 	_set_button_visible("jump", false)
 	_set_button_visible("crouch", false)
 	_set_button_visible("view", false)
+	_set_button_visible("fire", false)
+	_set_button_visible("aim", false)
+	_set_button_visible("reload", false)
+	_set_button_visible("weapon", false)
+	_set_button_visible("grenade", false)
+	_set_button_visible("heal", false)
 	if vehicle.has_method("get") and vehicle.get("max_health") != null:
 		_vehicle_health.max_value = float(vehicle.get("max_health"))
 		_vehicle_health.value = float(vehicle.get("health"))
@@ -766,9 +810,16 @@ func _on_exited_vehicle() -> void:
 	_vehicle_panel.visible = false
 	_crosshair.visible = true
 	_set_button_visible("camera", false)
+	_set_button_visible("gas", false)
+	_set_button_visible("brake", false)
+	_set_button_visible("exit", false)
 	_set_button_visible("jump", true)
 	_set_button_visible("crouch", true)
 	_set_button_visible("view", true)
+	_set_button_visible("fire", true)
+	_set_button_visible("aim", true)
+	_set_button_visible("reload", true)
+	_set_button_visible("weapon", true)
 
 
 func _flash_damage(alpha: float) -> void:

@@ -20,6 +20,8 @@ var current_mission := 0
 var is_playing := false
 var _play_seconds := 0.0
 var _shake := 0.0
+var _touch_throttle := 0.0
+var _touch_brake := 0.0
 var _camera: Camera3D
 var _mission_difficulty := 0.6
 
@@ -78,6 +80,16 @@ func _rebuild_hud() -> void:
 		if player != null: player.cycle_scope()
 	)
 	hud.vehicle_camera_pressed.connect(_cycle_vehicle_camera)
+	hud.gas_pressed.connect(func(value: bool):
+		_touch_throttle = -1.0 if value else 0.0
+	)
+	hud.brake_pressed.connect(func(value: bool):
+		_touch_brake = 1.0 if value else 0.0
+	)
+	hud.exit_vehicle_pressed.connect(func():
+		if player != null and player.is_in_vehicle():
+			player.exit_vehicle()
+	)
 	hud.visible = false
 
 
@@ -160,11 +172,12 @@ func _walk_touch(_delta: float) -> void:
 	if player.is_in_vehicle() and player.current_vehicle != null:
 		SaveSystem.add_driving_time(_delta)
 		var vehicle = player.current_vehicle
-		if vehicle.has_method("set_throttle_from_touch"):
-			vehicle.call("set_throttle_from_touch", player.move_input)
-		else:
-			vehicle.set("throttle", clampf(-player.move_input.y, -1.0, 1.0))
-			vehicle.set("steer", clampf(player.move_input.x, -1.0, 1.0))
+		var throttle := _touch_throttle
+		if throttle == 0.0:
+			throttle = clampf(-player.move_input.y, -1.0, 1.0)
+		vehicle.set("throttle", throttle)
+		vehicle.set("steer", clampf(player.move_input.x, -1.0, 1.0))
+		vehicle.set("brake_input", _touch_brake)
 
 
 func _walk_input(_delta: float) -> void:

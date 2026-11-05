@@ -56,7 +56,7 @@ var muzzle: Node3D
 var rig: SoldierRig
 var view_weapon: ViewWeapon
 var current_vehicle: Node = null
-var first_person := true
+var first_person := false
 var auto_fire := false
 
 var _yaw := 0.0
@@ -128,7 +128,8 @@ func _build_rig() -> void:
 	muzzle = Node3D.new()
 	muzzle.position = Vector3(0.16, 1.42, -0.72)
 	add_child(muzzle)
-	set_view_mode(true)
+	# الافتراضي: منظور ثالث يُظهر صدام بطل كامل بجسمه
+	set_view_mode(false)
 
 
 func _build_weapons() -> void:

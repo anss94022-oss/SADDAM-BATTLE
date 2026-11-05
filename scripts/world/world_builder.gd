@@ -688,7 +688,7 @@ func _build_convoy() -> void:
 ## مدينة واسعة: شبكة شوارع بإشارات ورصيف، ناطحات سحاب، أعمدة إضاءة،
 ## مهبط هليكوبتر في الساحة، وسيارات حديثة مركونة.
 func _build_city() -> void:
-	player_spawn = Vector3(0, 1.2, 132)
+	player_spawn = Vector3(0, 1.2, 108)
 	var step := 72.0
 	var road_half := 9.0
 	var block_half := 24.0
@@ -756,6 +756,79 @@ func _build_city() -> void:
 	for car in parked:
 		_vehicle_prop(car[0], car[1])
 
+	# ---- محلات وواجهات على الشوارع ----
+	var shop_colors := [Color(0.95, 0.35, 0.25), Color(0.20, 0.65, 0.95),
+			Color(0.95, 0.75, 0.20), Color(0.35, 0.80, 0.45), Color(0.85, 0.30, 0.70)]
+	var shop_index := 0
+	for gx in range(-2, 3):
+		for gz in range(-2, 3):
+			if gx == 0 and gz == 0:
+				continue
+			var bx := float(gx) * step
+			var bz := float(gz) * step
+			# واجهات على الحافتين الشمالية والجنوبية للحي
+			for side in 2:
+				var z_edge := bz + (block_half - 1.0) * (1.0 if side == 0 else -1.0)
+				for shop in range(3):
+					var x_off := -15.0 + float(shop) * 15.0
+					var color: Color = shop_colors[shop_index % shop_colors.size()]
+					_shopfront(Vector3(bx + x_off, 0.24, z_edge), 0.0 if side == 0 else PI, color)
+					shop_index += 1
+			# واجهات على الحافتين الشرقية والغربية
+			for side2 in 2:
+				var x_edge := bx + (block_half - 1.0) * (1.0 if side2 == 0 else -1.0)
+				var z_off := -10.0
+				var color2: Color = shop_colors[shop_index % shop_colors.size()]
+				_shopfront(Vector3(x_edge, 0.24, bz + z_off),
+						PI * 0.5 if side2 == 0 else -PI * 0.5, color2)
+				shop_index += 1
+
+	# ---- أسواق شوارع وأكشاك ----
+	var stalls := [
+		[Vector3(-36, 0.0, 30), 0.0], [Vector3(36, 0.0, 26), PI],
+		[Vector3(-36, 0.0, -34), PI], [Vector3(36, 0.0, -30), 0.0],
+		[Vector3(-70, 0.0, 40), 0.5], [Vector3(70, 0.0, -42), -0.4]
+	]
+	for stall in stalls:
+		_market_stall(stall[0], stall[1])
+
+	# ---- إشارات مرور وممرات مشاة عند التقاطعات ----
+	for gx in range(-1, 2):
+		for gz in range(-1, 2):
+			var ix := float(gx) * step
+			var iz := float(gz) * step
+			_crosswalk(Vector3(ix, 0.22, iz + block_half + 4.0), true)
+			_crosswalk(Vector3(ix + block_half + 4.0, 0.22, iz), false)
+			_traffic_light(Vector3(ix + 12.0, 0.2, iz + 12.0), PI)
+			_traffic_light(Vector3(ix - 12.0, 0.2, iz - 12.0), 0.0)
+
+	# ---- أثاث الشارع والمشاة ----
+	for index4 in 16:
+		var px := randf_range(-120, 120)
+		var pz := randf_range(-120, 120)
+		if absf(fmod(px, step)) < 26.0 or absf(fmod(pz, step)) < 26.0:
+			_bench(Vector3(px, 0.24, pz), randf_range(0, TAU))
+		else:
+			_street_bin(Vector3(px, 0.24, pz))
+	for index5 in 26:
+		_pedestrian(Vector3(randf_range(-130, 130), 0.24, randf_range(-130, 130)),
+				randf_range(0.0, TAU))
+
+	# ---- جسور هوائية بين الأبراج ----
+	var bridges := [
+		[Vector3(36, 20, 72), Vector3(24, 4, 8)],
+		[Vector3(-36, 26, -72), Vector3(30, 4, 8)],
+		[Vector3(72, 24, -36), Vector3(8, 4, 24)],
+		[Vector3(-72, 30, 36), Vector3(8, 4, 24)],
+		[Vector3(108, 22, 72), Vector3(26, 4, 8)],
+		[Vector3(-108, 28, -72), Vector3(26, 4, 8)]
+	]
+	for bridge in bridges:
+		_sky_bridge(bridge[0], bridge[1])
+
+	# ---- خط جوي (قطار معلّق) فوق الجادة الرئيسية ----
+	_elevated_transit()
+
 	# ---- مبانٍ جانبية متوسطة لإغلاق الأفق ----
 	for index3 in 10:
 		var angle := TAU * float(index3) / 10.0
@@ -770,6 +843,319 @@ func _build_city() -> void:
 	spawn_points.append(Vector3(44, 1.0, -58))
 	spawn_points.append(Vector3(-46, 1.0, 44))
 	spawn_points.append(Vector3(48, 1.0, 40))
+
+
+# ------------------------------------------------------- عناصر المدينة
+func _shopfront(position: Vector3, rotation: float, color: Color) -> void:
+	var root := Node3D.new()
+	root.position = position
+	root.rotation.y = rotation
+	add_child(root)
+
+	# جسم المحل (طابق أرضي بمبنى فوقه)
+	var shell := MeshInstance3D.new()
+	var shell_mesh := BoxMesh.new()
+	shell_mesh.size = Vector3(10.0, 7.0, 4.2)
+	shell.mesh = shell_mesh
+	shell.position = Vector3(0, 3.5, -0.4)
+	shell.material_override = _material("concrete", 2.0, Color(0.34, 0.36, 0.40))
+	root.add_child(shell)
+
+	# واجهة زجاجية دافئة
+	var glass := MeshInstance3D.new()
+	var glass_mesh := BoxMesh.new()
+	glass_mesh.size = Vector3(8.6, 2.8, 0.18)
+	glass.mesh = glass_mesh
+	glass.position = Vector3(0, 1.7, 1.72)
+	var glass_mat := StandardMaterial3D.new()
+	glass_mat.albedo_color = Color(0.10, 0.13, 0.17)
+	glass_mat.metallic = 0.2
+	glass_mat.roughness = 0.25
+	glass_mat.emission_enabled = true
+	glass_mat.emission = Color(1.0, 0.86, 0.60)
+	glass_mat.emission_energy_multiplier = 0.22
+	glass.material_override = glass_mat
+	root.add_child(glass)
+
+	# مظلة صغيرة
+	var awning := MeshInstance3D.new()
+	var awning_mesh := BoxMesh.new()
+	awning_mesh.size = Vector3(9.2, 0.16, 1.3)
+	awning.mesh = awning_mesh
+	awning.position = Vector3(0, 3.35, 1.9)
+	awning.rotation.x = deg_to_rad(10.0)
+	var awning_mat := StandardMaterial3D.new()
+	awning_mat.albedo_color = color.darkened(0.25)
+	awning_mat.roughness = 0.75
+	awning.material_override = awning_mat
+	root.add_child(awning)
+
+	# لافتة مضيئة
+	var sign_board := MeshInstance3D.new()
+	var sign_mesh := BoxMesh.new()
+	sign_mesh.size = Vector3(7.0, 0.9, 0.16)
+	sign_board.mesh = sign_mesh
+	sign_board.position = Vector3(0, 4.1, 1.75)
+	var sign_mat := StandardMaterial3D.new()
+	sign_mat.albedo_color = Color(0.04, 0.04, 0.05)
+	sign_mat.emission_enabled = true
+	sign_mat.emission = color
+	sign_mat.emission_energy_multiplier = 1.1
+	sign_board.material_override = sign_mat
+	root.add_child(sign_board)
+
+	var shape := StaticBody3D.new()
+	shape.collision_layer = 1
+	var collider := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(10.0, 7.0, 4.2)
+	collider.shape = box
+	shape.add_child(collider)
+	shape.position = Vector3(0, 3.5, -0.4)
+	root.add_child(shape)
+	cover_points.append(position + Vector3(0, 0, 2.2))
+
+
+func _market_stall(position: Vector3, rotation: float) -> void:
+	var root := Node3D.new()
+	root.position = position
+	root.rotation.y = rotation
+	add_child(root)
+
+	var table_mesh := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(3.4, 1.0, 1.6)
+	table_mesh.mesh = box
+	table_mesh.position = Vector3(0, 0.5, 0)
+	table_mesh.material_override = _material("wood", 1.0, Color(0.55, 0.42, 0.30))
+	root.add_child(table_mesh)
+
+	var canopy := MeshInstance3D.new()
+	var canopy_mesh := BoxMesh.new()
+	canopy_mesh.size = Vector3(3.8, 0.14, 2.6)
+	canopy.mesh = canopy_mesh
+	canopy.position = Vector3(0, 2.5, 0)
+	var colors := [Color(0.90, 0.28, 0.24), Color(0.20, 0.55, 0.85), Color(0.95, 0.75, 0.20)]
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = colors[randi() % colors.size()]
+	canopy.material_override = mat
+	root.add_child(canopy)
+
+	for side in 2:
+		var pole := MeshInstance3D.new()
+		var pole_mesh := CylinderMesh.new()
+		pole_mesh.top_radius = 0.06
+		pole_mesh.bottom_radius = 0.06
+		pole_mesh.height = 2.5
+		pole.mesh = pole_mesh
+		pole.position = Vector3(-1.6 if side == 0 else 1.6, 1.25, -1.0)
+		pole.material_override = _material("metal", 1.0, Color(0.4, 0.4, 0.42))
+		root.add_child(pole)
+
+	var shape2 := StaticBody3D.new()
+	shape2.collision_layer = 1
+	var collider := CollisionShape3D.new()
+	var box2 := BoxShape3D.new()
+	box2.size = Vector3(3.6, 2.6, 2.0)
+	collider.shape = box2
+	shape2.add_child(collider)
+	shape2.position = Vector3(0, 1.3, 0)
+	root.add_child(shape2)
+	cover_points.append(position + Vector3(2.2, 0, 0))
+
+
+func _crosswalk(center: Vector3, along_x: bool) -> void:
+	for stripe in 6:
+		var offset := (float(stripe) - 2.5) * 1.0
+		var size := Vector3(0.55, 0.06, 4.0) if along_x else Vector3(4.0, 0.06, 0.55)
+		var pos := center + (Vector3(offset, 0, 0) if along_x else Vector3(0, 0, offset))
+		_prop_box(pos, size, "concrete", Color(0.95, 0.95, 0.92), 1.0, false)
+
+
+func _traffic_light(position: Vector3, rotation: float) -> void:
+	var root := Node3D.new()
+	root.position = position
+	root.rotation.y = rotation
+	add_child(root)
+
+	var pole := MeshInstance3D.new()
+	var pole_mesh := CylinderMesh.new()
+	pole_mesh.top_radius = 0.12
+	pole_mesh.bottom_radius = 0.14
+	pole_mesh.height = 6.2
+	pole.mesh = pole_mesh
+	pole.position = Vector3(0, 3.1, 0)
+	pole.material_override = _material("metal", 1.0, Color(0.25, 0.27, 0.28))
+	root.add_child(pole)
+
+	var arm := MeshInstance3D.new()
+	var arm_mesh := BoxMesh.new()
+	arm_mesh.size = Vector3(0.14, 0.14, 2.2)
+	arm.mesh = arm_mesh
+	arm.position = Vector3(0, 6.0, -1.1)
+	arm.material_override = _material("metal", 1.0, Color(0.25, 0.27, 0.28))
+	root.add_child(arm)
+
+	var head := MeshInstance3D.new()
+	var head_mesh := BoxMesh.new()
+	head_mesh.size = Vector3(0.5, 1.3, 0.4)
+	head.mesh = head_mesh
+	head.position = Vector3(0, 5.6, -2.2)
+	head.material_override = _material("metal", 1.0, Color(0.12, 0.13, 0.14))
+	root.add_child(head)
+
+	var light_index := 0
+	for light_color in [Color(0.95, 0.20, 0.15), Color(0.98, 0.78, 0.15), Color(0.25, 0.85, 0.40)]:
+		var bulb := MeshInstance3D.new()
+		var bulb_mesh := SphereMesh.new()
+		bulb_mesh.radius = 0.14
+		bulb_mesh.height = 0.28
+		bulb.mesh = bulb_mesh
+		bulb.position = Vector3(0, 6.05 - float(light_index) * 0.42, -2.2)
+		var bulb_mat := StandardMaterial3D.new()
+		bulb_mat.albedo_color = light_color
+		bulb_mat.emission_enabled = true
+		bulb_mat.emission = light_color
+		bulb_mat.emission_energy_multiplier = 2.0 if light_index != 2 else 0.4
+		bulb.material_override = bulb_mat
+		root.add_child(bulb)
+		light_index += 1
+
+
+func _bench(position: Vector3, rotation: float) -> void:
+	var root := Node3D.new()
+	root.position = position
+	root.rotation.y = rotation
+	add_child(root)
+	var seat := MeshInstance3D.new()
+	var seat_mesh := BoxMesh.new()
+	seat_mesh.size = Vector3(2.0, 0.12, 0.6)
+	seat.mesh = seat_mesh
+	seat.position = Vector3(0, 0.5, 0)
+	seat.material_override = _material("wood", 1.0, Color(0.55, 0.38, 0.24))
+	root.add_child(seat)
+	for leg in 2:
+		var leg_mesh := MeshInstance3D.new()
+		var lm := BoxMesh.new()
+		lm.size = Vector3(0.12, 0.5, 0.5)
+		leg_mesh.mesh = lm
+		leg_mesh.position = Vector3(-0.8 if leg == 0 else 0.8, 0.25, 0)
+		leg_mesh.material_override = _material("metal", 1.0, Color(0.3, 0.3, 0.32))
+		root.add_child(leg_mesh)
+
+
+func _street_bin(position: Vector3) -> void:
+	var bin_mesh := MeshInstance3D.new()
+	var cylinder := CylinderMesh.new()
+	cylinder.top_radius = 0.32
+	cylinder.bottom_radius = 0.28
+	cylinder.height = 0.9
+	bin_mesh.mesh = cylinder
+	bin_mesh.position = position + Vector3(0, 0.45, 0)
+	bin_mesh.material_override = _material("metal", 1.0, Color(0.22, 0.30, 0.24))
+	add_child(bin_mesh)
+
+
+func _pedestrian(position: Vector3, rotation: float) -> void:
+	var root := Node3D.new()
+	root.position = position
+	root.rotation.y = rotation
+	add_child(root)
+
+	var shirt_colors := [Color(0.20, 0.35, 0.60), Color(0.65, 0.22, 0.20),
+			Color(0.85, 0.82, 0.75), Color(0.25, 0.45, 0.30), Color(0.45, 0.30, 0.55)]
+	var shirt: Color = shirt_colors[randi() % shirt_colors.size()]
+
+	var body := MeshInstance3D.new()
+	var capsule := CapsuleMesh.new()
+	capsule.radius = 0.28
+	capsule.height = 1.1
+	body.mesh = capsule
+	body.position = Vector3(0, 0.95, 0)
+	var body_mat := StandardMaterial3D.new()
+	body_mat.albedo_color = shirt
+	body.material_override = body_mat
+	root.add_child(body)
+
+	var head := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.16
+	sphere.height = 0.32
+	head.mesh = sphere
+	head.position = Vector3(0, 1.62, 0)
+	var head_mat := StandardMaterial3D.new()
+	head_mat.albedo_color = Color(0.78, 0.62, 0.48)
+	head.material_override = head_mat
+	root.add_child(head)
+
+	for leg in 2:
+		var leg_mesh := MeshInstance3D.new()
+		var lm := CapsuleMesh.new()
+		lm.radius = 0.11
+		lm.height = 0.8
+		leg_mesh.mesh = lm
+		leg_mesh.position = Vector3(-0.12 if leg == 0 else 0.12, 0.4, 0)
+		var leg_mat := StandardMaterial3D.new()
+		leg_mat.albedo_color = Color(0.14, 0.16, 0.20)
+		leg_mesh.material_override = leg_mat
+		root.add_child(leg_mesh)
+
+
+func _sky_bridge(center: Vector3, size: Vector3) -> void:
+	_prop_box(center, size, "concrete", Color(0.26, 0.30, 0.36), 2.0, false)
+	var glass := MeshInstance3D.new()
+	var glass_mesh := BoxMesh.new()
+	glass_mesh.size = Vector3(size.x, size.y * 0.55, size.z + 0.3)
+	glass.mesh = glass_mesh
+	glass.position = center + Vector3(0, size.y * 0.18, 0)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.30, 0.55, 0.75, 0.55)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.metallic = 0.5
+	mat.roughness = 0.1
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	glass.material_override = mat
+	add_child(glass)
+
+
+func _elevated_transit() -> void:
+	# سكة معلّقة فوق الجادة: أعمدة + جسر + قطار
+	for index in 11:
+		var z := -150.0 + float(index) * 30.0
+		if absf(z) < 16.0:
+			continue
+		_prop_box(Vector3(0, 7.5, z), Vector3(1.4, 15.0, 1.4), "concrete",
+				Color(0.32, 0.34, 0.38), 2.0, false)
+		_prop_box(Vector3(0, 15.4, z), Vector3(3.4, 0.8, 1.2), "concrete",
+				Color(0.36, 0.38, 0.42), 2.0, false)
+
+	_prop_box(Vector3(0, 16.0, 0), Vector3(6.0, 0.55, 300.0), "concrete",
+			Color(0.40, 0.42, 0.46), 6.0, false)
+
+	var train := Node3D.new()
+	train.position = Vector3(0, 17.2, -40.0)
+	add_child(train)
+	for car in 3:
+		var body := MeshInstance3D.new()
+		var body_mesh := BoxMesh.new()
+		body_mesh.size = Vector3(3.0, 1.9, 12.0)
+		body.mesh = body_mesh
+		body.position = Vector3(0, 0, float(car) * 13.5)
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.86, 0.88, 0.92)
+		mat.metallic = 0.35
+		mat.roughness = 0.3
+		body.material_override = mat
+		train.add_child(body)
+		var stripe := MeshInstance3D.new()
+		var stripe_mesh := BoxMesh.new()
+		stripe_mesh.size = Vector3(3.05, 0.35, 12.05)
+		stripe.mesh = stripe_mesh
+		stripe.position = Vector3(0, 0.35, float(car) * 13.5)
+		var stripe_mat := StandardMaterial3D.new()
+		stripe_mat.albedo_color = Color(0.15, 0.35, 0.65)
+		stripe.material_override = stripe_mat
+		train.add_child(stripe)
 
 
 func _build_city_block(center: Vector3, span: float) -> void:
