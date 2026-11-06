@@ -25,7 +25,7 @@ const TOUCH_BUTTONS := [
 
 # مقاسات مستقلة لكل زر (بالبكسل قبل معامل تكبير الإعدادات)
 const TOUCH_SIZES := {
-	"fire": 148.0, "aim": 104.0, "jump": 88.0, "reload": 92.0, "weapon": 84.0,
+	"fire": 150.0, "aim": 108.0, "jump": 88.0, "reload": 172.0, "weapon": 84.0,
 	"grenade": 76.0, "heal": 76.0, "crouch": 74.0, "interact": 92.0,
 	"camera": 82.0, "autofire": 60.0, "view": 56.0,
 	"gas": 108.0, "brake": 96.0, "exit": 70.0
@@ -39,10 +39,10 @@ const TOUCH_FONTS := {
 
 # توزيع الإبهامين: يسار = عصا + انحناء، يمين = قوس إطلاق/تصويب/قفز ونظام تلقيم أسفله
 const DEFAULT_LAYOUT := {
-	"fire": {"x": 0.905, "y": 0.815},
+	"fire": {"x": 0.912, "y": 0.800},
 	"aim": {"x": 0.905, "y": 0.500},
 	"jump": {"x": 0.888, "y": 0.660},
-	"reload": {"x": 0.775, "y": 0.848},
+	"reload": {"x": 0.715, "y": 0.860},
 	"weapon": {"x": 0.668, "y": 0.888},
 	"grenade": {"x": 0.566, "y": 0.905},
 	"heal": {"x": 0.792, "y": 0.700},
@@ -461,30 +461,48 @@ func _draw_touch_icon(button: Button, icon: String) -> void:
 	var thick := maxf(2.0, r * 0.075)
 	match icon:
 		"fire":
-			button.draw_arc(c, r * 0.36, 0, TAU, 32, Color(1, 1, 1, 0.35), thick * 0.7)
-			for offset in [Vector2(0, -1), Vector2(0, 1), Vector2(-1, 0), Vector2(1, 0)]:
-				var d: Vector2 = offset
-				button.draw_line(c + d * r * 0.46, c + d * r * 0.72, white, thick)
-			button.draw_circle(c, r * 0.10, white)
+			button.draw_arc(c, r * 0.70, 0, TAU, 48, Color(1, 1, 1, 0.45), thick * 0.7)
+			var bw := r * 0.26
+			var bh := r * 0.60
+			button.draw_rect(Rect2(c + Vector2(-bw * 0.5, -bh * 0.10), Vector2(bw, bh * 0.62)), white)
+			button.draw_colored_polygon(PackedVector2Array([
+				c + Vector2(-bw * 0.5, -bh * 0.10),
+				c + Vector2(0.0, -bh * 0.55),
+				c + Vector2(bw * 0.5, -bh * 0.10)
+			]), white)
+			button.draw_rect(Rect2(c + Vector2(-bw * 0.62, bh * 0.50), Vector2(bw * 1.24, bh * 0.12)),
+				Color(1, 1, 1, 0.85))
 		"aim":
-			button.draw_arc(c, r * 0.44, 0, TAU, 36, white, thick * 0.8)
-			button.draw_line(c + Vector2(-r * 0.62, 0), c + Vector2(-r * 0.30, 0), white, thick * 0.8)
-			button.draw_line(c + Vector2(r * 0.30, 0), c + Vector2(r * 0.62, 0), white, thick * 0.8)
-			button.draw_line(c + Vector2(0, -r * 0.62), c + Vector2(0, -r * 0.30), white, thick * 0.8)
-			button.draw_line(c + Vector2(0, r * 0.30), c + Vector2(0, r * 0.62), white, thick * 0.8)
-			button.draw_circle(c, r * 0.09, white)
+			button.draw_arc(c, r * 0.60, 0, TAU, 44, white, thick * 0.9)
+			button.draw_line(c + Vector2(-r * 0.86, 0), c + Vector2(r * 0.86, 0), white, thick * 0.8)
+			button.draw_line(c + Vector2(0, -r * 0.86), c + Vector2(0, r * 0.86), white, thick * 0.8)
 		"jump":
 			button.draw_line(c + Vector2(0, r * 0.50), c + Vector2(0, -r * 0.44), white, thick)
 			button.draw_line(c + Vector2(0, -r * 0.44), c + Vector2(-r * 0.26, -r * 0.14), white, thick)
 			button.draw_line(c + Vector2(0, -r * 0.44), c + Vector2(r * 0.26, -r * 0.14), white, thick)
 		"reload":
-			button.draw_arc(c, r * 0.40, deg_to_rad(-50), deg_to_rad(215), 28, white, thick)
-			var tip := c + Vector2(r * 0.40, 0).rotated(deg_to_rad(-50))
+			# سهمان دائريان متعاكسان
+			button.draw_arc(c, r * 0.66, deg_to_rad(-150), deg_to_rad(-30), 26, white, thick)
+			button.draw_arc(c, r * 0.66, deg_to_rad(30), deg_to_rad(150), 26, white, thick)
 			button.draw_colored_polygon(PackedVector2Array([
-				tip + Vector2(-r * 0.12, -r * 0.16),
-				tip + Vector2(r * 0.16, r * 0.06),
-				tip + Vector2(-r * 0.16, r * 0.10)
+				c + Vector2(r * 0.66, 0).rotated(deg_to_rad(-150)) + Vector2(-r * 0.10, -r * 0.14),
+				c + Vector2(r * 0.66, 0).rotated(deg_to_rad(-150)) + Vector2(r * 0.16, r * 0.04),
+				c + Vector2(r * 0.66, 0).rotated(deg_to_rad(-150)) + Vector2(-r * 0.14, r * 0.10)
 			]), white)
+			button.draw_colored_polygon(PackedVector2Array([
+				c + Vector2(r * 0.66, 0).rotated(deg_to_rad(30)) + Vector2(r * 0.10, r * 0.14),
+				c + Vector2(r * 0.66, 0).rotated(deg_to_rad(30)) + Vector2(-r * 0.16, -r * 0.04),
+				c + Vector2(r * 0.66, 0).rotated(deg_to_rad(30)) + Vector2(r * 0.14, -r * 0.10)
+			]), white)
+			# ثلاث رصاصات في الوسط
+			for i in 3:
+				var bx := c + Vector2((float(i) - 1.0) * r * 0.20, r * 0.02)
+				button.draw_rect(Rect2(bx + Vector2(-r * 0.055, -r * 0.12), Vector2(r * 0.11, r * 0.24)), white)
+				button.draw_colored_polygon(PackedVector2Array([
+					bx + Vector2(-r * 0.055, -r * 0.12),
+					bx + Vector2(0.0, -r * 0.24),
+					bx + Vector2(r * 0.055, -r * 0.12)
+				]), white)
 		"weapon":
 			button.draw_line(c + Vector2(-r * 0.44, -r * 0.16), c + Vector2(r * 0.42, -r * 0.16), white, thick * 0.85)
 			button.draw_line(c + Vector2(-r * 0.44, r * 0.16), c + Vector2(r * 0.42, r * 0.16), white, thick * 0.85)

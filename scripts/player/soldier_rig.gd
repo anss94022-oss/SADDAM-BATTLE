@@ -143,10 +143,10 @@ func _build_from_model(packed: PackedScene) -> bool:
 	_model_root.add_child(inst)
 	_model_inst = inst
 
-	# ضبط الطول إلى 1.82 م وتثبيت القدمين على الأرض
+	# ضبط الطول إلى 2.05 م وتثبيت القدمين على الأرض
 	var aabb := _aabb_of_node(inst)
 	var height := aabb.size.y
-	var factor := 1.82 / height if height > 0.01 else 1.0
+	var factor := 2.05 / height if height > 0.01 else 1.0
 	inst.scale = Vector3.ONE * factor
 	inst.position = Vector3(0, -aabb.position.y * factor, 0)
 	# نماذج Mixamo تواجه +Z، ومحور Godot الأمامي -Z
@@ -463,8 +463,8 @@ func play_death() -> void:
 
 
 func head_height() -> float:
-	return 1.70
+	return 1.95
 
 
 func is_head_position(world_position: Vector3) -> bool:
-	return world_position.y >= global_position.y + 1.48
+	return world_position.y >= global_position.y + 1.70

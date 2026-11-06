@@ -103,7 +103,7 @@ func _build_collision() -> void:
 func _build_camera() -> void:
 	spring_arm = SpringArm3D.new()
 	spring_arm.spring_length = 3.3
-	spring_arm.position = Vector3(0.52, 1.52, 0)
+	spring_arm.position = Vector3(0.55, 1.74, 0)
 	spring_arm.collision_mask = 1
 	spring_arm.margin = 0.25
 	add_child(spring_arm)
