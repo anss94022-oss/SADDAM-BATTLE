@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c8horu5mkhntg"
-path="res://.godot/imported/soldier_vanguard_file2.jpg-adb09c3860b8ffc2688ff18e755b602c.ctex"
+uid="uid://b3lvaa7t87at0"
+path="res://.godot/imported/hero_soldier_rig_metallic-rig_roughness.jpg-0b1658c9b719976ce04b80c43b47f70a.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "097baeaf099c995525c80dfb8d29603d"
+"md5": "292cd4f7360af9984ed0bc12aab48663"
 }
 
 [deps]
 
-source_file="res://assets/characters/soldier_vanguard_file2.jpg"
-dest_files=["res://.godot/imported/soldier_vanguard_file2.jpg-adb09c3860b8ffc2688ff18e755b602c.ctex"]
+source_file="res://assets/characters/hero_soldier_rig_metallic-rig_roughness.jpg"
+dest_files=["res://.godot/imported/hero_soldier_rig_metallic-rig_roughness.jpg-0b1658c9b719976ce04b80c43b47f70a.ctex"]
 
 [params]
 

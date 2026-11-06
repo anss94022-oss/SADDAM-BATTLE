@@ -115,7 +115,7 @@ func _sphere(parent: Node3D, radius: float, position: Vector3, color: Color,
 	return mesh
 
 
-const MODEL_PATH := "res://assets/characters/soldier_vanguard.glb"
+const MODEL_PATH := "res://assets/characters/hero_soldier.glb"
 
 var _using_model := false
 var _model_root: Node3D
@@ -144,20 +144,20 @@ func _build_from_model(packed: PackedScene) -> bool:
 	_model_inst = inst
 
 	# ضبط الطول إلى 2.05 م وتثبيت القدمين على الأرض
-	var aabb := _aabb_of_node(inst)
-	var height := aabb.size.y
-	var factor := 2.05 / height if height > 0.01 else 1.0
+	var bounds := _model_bounds(inst)
+	var height := bounds.size.y
+	var factor := 2.05 / height if height > 0.2 else 1.0
 	inst.scale = Vector3.ONE * factor
-	inst.position = Vector3(0, -aabb.position.y * factor, 0)
-	# نماذج Mixamo تواجه +Z، ومحور Godot الأمامي -Z
-	inst.rotation.y = 0.0
+	inst.position = Vector3(0, -bounds.position.y * factor, 0)
+	# نماذج Mixamo/Grab3D تواجه +Z، ومحور Godot الأمامي -Z
+	inst.rotation.y = PI
 
 	_anim = inst.find_child("AnimationPlayer", true, false) as AnimationPlayer
 	if _anim != null:
-		for anim_name in ["Idle", "Walk", "Run"]:
-			if _anim.has_animation(anim_name):
-				_anim.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
-		_anim.play("Idle")
+		for anim_name in _anim.get_animation_list():
+			_anim.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
+		if _anim.has_animation("walk"):
+			_anim.play("walk")
 
 	if is_enemy:
 		_tint_enemy(inst)
@@ -172,6 +172,26 @@ func _build_from_model(packed: PackedScene) -> bool:
 	_body_root = _model_root
 	_using_model = true
 	return true
+
+
+func _model_bounds(inst: Node3D) -> AABB:
+	# المجسمات المغلّفة بعظام تظهر صغيرة عبر AABB الشبكة، فنقيس من العظام
+	for node in inst.find_children("*", "Skeleton3D", true, false):
+		var skel := node as Skeleton3D
+		if skel == null or skel.get_bone_count() == 0:
+			continue
+		var box := AABB()
+		var first := true
+		for index in skel.get_bone_count():
+			var point: Vector3 = skel.global_transform * skel.get_bone_global_pose(index).origin
+			if first:
+				box = AABB(point, Vector3.ZERO)
+				first = false
+			else:
+				box = box.expand(point)
+		if box.size.y > 0.2:
+			return box
+	return _aabb_of_node(inst)
 
 
 func _aabb_of_node(node: Node3D) -> AABB:
@@ -411,17 +431,21 @@ func _animate_model(delta: float, speed: float, is_sprinting: bool,
 	_phase += delta * (3.0 + move_speed * 0.9)
 
 	if _anim != null:
-		var target := "Idle"
-		var rate := 1.0
+		var target := "walk"
+		var rate := 0.0
 		if move_speed > 4.6 or is_sprinting:
-			target = "Run"
+			target = "run"
 			rate = clampf(move_speed / 7.2, 0.85, 1.5)
 		elif move_speed > 0.4:
-			target = "Walk"
+			target = "walk"
 			rate = clampf(move_speed / 2.4, 0.8, 1.7)
-		if _anim.current_animation != target and _anim.has_animation(target):
-			_anim.play(target, 0.18)
+		if not _anim.has_animation(target):
+			target = _anim.get_animation_list()[0] if _anim.get_animation_list().size() > 0 else ""
+		if target != "" and _anim.current_animation != target:
+			_anim.play(target, 0.2)
 		_anim.speed_scale = rate
+		if rate <= 0.001 and target != "":
+			_anim.seek(0.0, true)
 
 	if _weapon_mount != null:
 		_weapon_mount.position = Vector3(-0.02, 1.12, 0.26)

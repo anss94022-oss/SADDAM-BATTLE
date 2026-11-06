@@ -136,14 +136,6 @@ func _add_environment() -> void:
 		_env.fog_light_color = Color(0.66, 0.74, 0.86)
 	_env.glow_enabled = not GameSettings.is_performance()
 	_env.glow_intensity = 0.45
-	_env.ssao_enabled = not GameSettings.is_performance()
-	_env.ssao_radius = 1.6
-	_env.ssao_intensity = 2.1
-	_env.ssao_power = 1.5
-	_env.ssao_detail = 0.6
-	_env.ssao_horizon = 0.06
-	_env.ssao_sharpness = 0.98
-	_env.ssao_light_affect = 0.15
 	_env.adjustment_enabled = true
 	_env.adjustment_brightness = 1.02
 	_env.adjustment_contrast = 1.07

@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://c7yi3c41cx70k"
-path="res://.godot/imported/soldier_vanguard.glb-03e5f88f3772a693a6b693df79913cf3.scn"
+uid="uid://ca20frhas2p31"
+path="res://.godot/imported/hero_soldier.glb-87c96df04c15d80430786034ff21257a.scn"
 
 [deps]
 
-source_file="res://assets/characters/soldier_vanguard.glb"
-dest_files=["res://.godot/imported/soldier_vanguard.glb-03e5f88f3772a693a6b693df79913cf3.scn"]
+source_file="res://assets/characters/hero_soldier.glb"
+dest_files=["res://.godot/imported/hero_soldier.glb-87c96df04c15d80430786034ff21257a.scn"]
 
 [params]
 

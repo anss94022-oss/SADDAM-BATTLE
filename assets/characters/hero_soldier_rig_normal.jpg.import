@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c40crgn248xte"
-path="res://.godot/imported/soldier_vanguard_vanguard_vanguard_diffuse_tga.jpg-13aba9671e7ddaf9d98f90dcaa9a36d1.ctex"
+uid="uid://dybahnc4m4b6d"
+path="res://.godot/imported/hero_soldier_rig_normal.jpg-d39b2b0808e4401d8c755f031aa08f09.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "48f3ea86b56ac184b64ed3487294eff4"
+"md5": "27c7271c72896fa6e38f6a4f804491cb"
 }
 
 [deps]
 
-source_file="res://assets/characters/soldier_vanguard_vanguard_vanguard_diffuse_tga.jpg"
-dest_files=["res://.godot/imported/soldier_vanguard_vanguard_vanguard_diffuse_tga.jpg-13aba9671e7ddaf9d98f90dcaa9a36d1.ctex"]
+source_file="res://assets/characters/hero_soldier_rig_normal.jpg"
+dest_files=["res://.godot/imported/hero_soldier_rig_normal.jpg-d39b2b0808e4401d8c755f031aa08f09.ctex"]
 
 [params]
 
