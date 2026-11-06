@@ -136,7 +136,19 @@ func _add_environment() -> void:
 		_env.fog_light_color = Color(0.66, 0.74, 0.86)
 	_env.glow_enabled = not GameSettings.is_performance()
 	_env.glow_intensity = 0.45
-	_env.ssao_enabled = false
+	_env.ssao_enabled = not GameSettings.is_performance()
+	_env.ssao_radius = 1.6
+	_env.ssao_intensity = 2.1
+	_env.ssao_power = 1.5
+	_env.ssao_detail = 0.6
+	_env.ssao_horizon = 0.06
+	_env.ssao_sharpness = 0.98
+	_env.ssao_light_affect = 0.15
+	_env.adjustment_enabled = true
+	_env.adjustment_brightness = 1.02
+	_env.adjustment_contrast = 1.07
+	_env.adjustment_saturation = 1.06
+	_env.adjustment_enabled = true
 	_env.fog_enabled = true
 	_env.fog_density = 0.006
 	_env.fog_light_color = horizon.lerp(Color(0.9, 0.8, 0.65), 0.4)
@@ -204,7 +216,9 @@ func _add_ground(map_name: String) -> void:
 func _add_lighting() -> void:
 	_sun = DirectionalLight3D.new()
 	_sun.shadow_enabled = GameSettings.shadows_enabled and not _is_city
-	_sun.directional_shadow_max_distance = 110.0
+	_sun.directional_shadow_max_distance = 95.0
+	_sun.shadow_blur = 1.4
+	_sun.shadow_bias = 0.03
 	_sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if not GameSettings.is_performance() \
 			else DirectionalLight3D.SHADOW_ORTHOGONAL
 
