@@ -412,8 +412,54 @@ func _build_gltf_model() -> bool:
 			if node_name.contains("front"):
 				_model_front_wheels.append(node)
 
+	_style_model(instance)
 	_using_model = true
 	return true
+
+
+func _paint_color() -> Color:
+	match String(data.get("class", "car")):
+		"truck":
+			return Color(0.32, 0.30, 0.22)
+		"armored":
+			return Color(0.24, 0.27, 0.20)
+		"recon":
+			return Color(0.38, 0.34, 0.22)
+	match vehicle_id:
+		"car_super2":
+			return Color(0.55, 0.05, 0.05)
+		"car_4x4":
+			return Color(0.20, 0.26, 0.20)
+		"car_civilian":
+			return Color(0.62, 0.63, 0.64)
+	return Color(0.34, 0.36, 0.30)
+
+
+func _style_model(instance: Node3D) -> void:
+	var paint := _paint_color()
+	for node in instance.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		if mi == null:
+			continue
+		var node_name := String(mi.name).to_lower()
+		if node_name.begins_with("wheel"):
+			var rubber := StandardMaterial3D.new()
+			rubber.albedo_color = Color(0.045, 0.045, 0.05)
+			rubber.roughness = 0.95
+			rubber.metallic = 0.0
+			mi.material_override = rubber
+			continue
+		var base := mi.get_active_material(0)
+		var mat: StandardMaterial3D
+		if base is StandardMaterial3D:
+			mat = (base as StandardMaterial3D).duplicate()
+		else:
+			mat = StandardMaterial3D.new()
+		mat.albedo_color = paint
+		mat.metallic = 0.6
+		mat.roughness = 0.28
+		mat.metallic_specular = 0.6
+		mi.material_override = mat
 
 
 func _aabb_of(node: Node) -> AABB:
@@ -824,8 +870,8 @@ func _explode(source: Node, from_position: Variant) -> void:
 
 func _apply_camera_look(delta: float) -> void:
 	if look_delta != Vector2.ZERO:
-		_cam_yaw -= look_delta.x * GameSettings.look_sensitivity * 0.45
-		_cam_pitch = clampf(_cam_pitch - look_delta.y * GameSettings.look_sensitivity * 0.35,
+		_cam_yaw -= look_delta.x * GameSettings.look_sensitivity * 0.015
+		_cam_pitch = clampf(_cam_pitch - look_delta.y * GameSettings.look_sensitivity * 0.015,
 				-0.9, 0.55)
 		look_delta = Vector2.ZERO
 	if _spring != null:

@@ -225,8 +225,8 @@ func _apply_look(delta: float) -> void:
 	var sensitivity := GameSettings.look_sensitivity
 
 	if look_delta != Vector2.ZERO:
-		_yaw -= look_delta.x * sensitivity * 0.45
-		var dy := look_delta.y * sensitivity * 0.45
+		_yaw -= look_delta.x * sensitivity * 0.015
+		var dy := look_delta.y * sensitivity * 0.015
 		if GameSettings.invert_y:
 			dy = -dy
 		_pitch = clampf(_pitch - dy, -1.15, 0.95)

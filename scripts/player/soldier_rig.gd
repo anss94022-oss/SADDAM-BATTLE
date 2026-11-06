@@ -82,71 +82,117 @@ func _capsule(parent: Node3D, radius: float, height: float, position: Vector3,
 	return mesh
 
 
+func _cylinder(parent: Node3D, top_r: float, bottom_r: float, height: float,
+		position: Vector3, color: Color, scale_z: float = 1.0) -> MeshInstance3D:
+	var mesh := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = top_r
+	cyl.bottom_radius = bottom_r
+	cyl.height = height
+	cyl.radial_segments = 20
+	mesh.mesh = cyl
+	mesh.position = position
+	mesh.scale = Vector3(1.0, 1.0, scale_z)
+	mesh.material_override = _material(color)
+	parent.add_child(mesh)
+	return mesh
+
+
+func _sphere(parent: Node3D, radius: float, position: Vector3, color: Color,
+		scale: Vector3 = Vector3.ONE, hemisphere: bool = false) -> MeshInstance3D:
+	var mesh := MeshInstance3D.new()
+	var sph := SphereMesh.new()
+	sph.radius = radius
+	sph.height = radius * 2.0 if not hemisphere else radius
+	sph.is_hemisphere = hemisphere
+	sph.radial_segments = 24
+	sph.rings = 12
+	mesh.mesh = sph
+	mesh.position = position
+	mesh.scale = scale
+	mesh.material_override = _material(color)
+	parent.add_child(mesh)
+	return mesh
+
+
 func _build() -> void:
 	_body_root = Node3D.new()
 	add_child(_body_root)
 
-	# الحوض والساقان
-	_box(_body_root, Vector3(0.42, 0.26, 0.30), Vector3(0, 0.92, 0), UNIFORM_DARK)
+	# الحوض
+	_box(_body_root, Vector3(0.40, 0.24, 0.28), Vector3(0, 0.94, 0), UNIFORM_DARK)
+	_box(_body_root, Vector3(0.44, 0.07, 0.30), Vector3(0, 1.02, 0), Color(0.16, 0.15, 0.12))
 
-	_thigh_l = Node3D.new()
-	_thigh_l.position = Vector3(-0.11, 0.90, 0)
-	_body_root.add_child(_thigh_l)
-	_capsule(_thigh_l, 0.10, 0.42, Vector3(0, -0.21, 0), uniform_color)
+	# الساقان: فخذ + ساق + رُكبة + حذاء
+	for side in [-1, 1]:
+		var thigh := Node3D.new()
+		thigh.position = Vector3(0.11 * side, 0.92, 0)
+		_body_root.add_child(thigh)
+		_capsule(thigh, 0.115, 0.44, Vector3(0, -0.22, 0), uniform_color)
 
-	_shin_l = Node3D.new()
-	_shin_l.position = Vector3(0, -0.42, 0)
-	_thigh_l.add_child(_shin_l)
-	_capsule(_shin_l, 0.085, 0.44, Vector3(0, -0.22, 0), UNIFORM_DARK)
-	_box(_shin_l, Vector3(0.14, 0.09, 0.24), Vector3(0, -0.45, 0.04), METAL)
+		var shin := Node3D.new()
+		shin.position = Vector3(0, -0.44, 0)
+		thigh.add_child(shin)
+		_capsule(shin, 0.095, 0.42, Vector3(0, -0.21, 0), UNIFORM_DARK)
+		_sphere(shin, 0.10, Vector3(0, 0.02, -0.02), UNIFORM_DARK, Vector3(1.0, 0.85, 1.0))
+		# حذاء عسكري
+		_box(shin, Vector3(0.17, 0.13, 0.30), Vector3(0, -0.44, 0.05), Color(0.10, 0.10, 0.09))
+		_box(shin, Vector3(0.18, 0.05, 0.32), Vector3(0, -0.50, 0.05), Color(0.06, 0.06, 0.06))
 
-	_thigh_r = Node3D.new()
-	_thigh_r.position = Vector3(0.11, 0.90, 0)
-	_body_root.add_child(_thigh_r)
-	_capsule(_thigh_r, 0.10, 0.42, Vector3(0, -0.21, 0), uniform_color)
-
-	_shin_r = Node3D.new()
-	_shin_r.position = Vector3(0, -0.42, 0)
-	_thigh_r.add_child(_shin_r)
-	_capsule(_shin_r, 0.085, 0.44, Vector3(0, -0.22, 0), UNIFORM_DARK)
-	_box(_shin_r, Vector3(0.14, 0.09, 0.24), Vector3(0, -0.45, 0.04), METAL)
+		if side < 0:
+			_thigh_l = thigh
+			_shin_l = shin
+			# جراب على الفخذ
+			_box(thigh, Vector3(0.11, 0.16, 0.10), Vector3(-0.13, -0.18, 0), Color(0.14, 0.14, 0.12))
+		else:
+			_thigh_r = thigh
+			_shin_r = shin
 
 	# الجذع
 	_torso = Node3D.new()
 	_torso.position = Vector3(0, 1.06, 0)
 	_body_root.add_child(_torso)
-	_box(_torso, Vector3(0.46, 0.56, 0.28), Vector3(0, 0.28, 0), uniform_color)
-	# سترة واقية
-	_box(_torso, Vector3(0.50, 0.42, 0.34), Vector3(0, 0.30, 0), UNIFORM_DARK)
+	_cylinder(_torso, 0.25, 0.19, 0.54, Vector3(0, 0.28, 0), uniform_color, 0.72)
+	# سترة واقية مع جيوب
+	_box(_torso, Vector3(0.46, 0.40, 0.30), Vector3(0, 0.30, 0), UNIFORM_DARK)
+	for i in 3:
+		_box(_torso, Vector3(0.12, 0.11, 0.06), Vector3(-0.13 + i * 0.13, 0.26, -0.17),
+			Color(0.16, 0.17, 0.14))
+	# كتفان
+	_sphere(_torso, 0.115, Vector3(-0.26, 0.50, 0), UNIFORM_DARK, Vector3(1.0, 0.85, 1.0))
+	_sphere(_torso, 0.115, Vector3(0.26, 0.50, 0), UNIFORM_DARK, Vector3(1.0, 0.85, 1.0))
 	# حقيبة ظهر
-	_box(_torso, Vector3(0.34, 0.36, 0.16), Vector3(0, 0.32, 0.22), Color(0.22, 0.22, 0.19))
-	# حزام ذخيرة
-	_box(_torso, Vector3(0.48, 0.08, 0.32), Vector3(0, 0.06, 0), Color(0.16, 0.15, 0.12))
+	_box(_torso, Vector3(0.36, 0.40, 0.18), Vector3(0, 0.30, 0.22), Color(0.24, 0.24, 0.20))
+	_box(_torso, Vector3(0.30, 0.10, 0.06), Vector3(0, 0.18, 0.32), Color(0.15, 0.15, 0.13))
 
 	# الرقبة والرأس والخوذة
-	_box(_torso, Vector3(0.14, 0.12, 0.14), Vector3(0, 0.60, 0), SKIN)
+	_cylinder(_torso, 0.065, 0.075, 0.10, Vector3(0, 0.60, 0), SKIN)
 	_head = Node3D.new()
-	_head.position = Vector3(0, 0.68, 0)
+	_head.position = Vector3(0, 0.66, 0)
 	_torso.add_child(_head)
-	_capsule(_head, 0.115, 0.26, Vector3(0, 0.06, 0), SKIN)
-	var helmet := _capsule(_head, 0.145, 0.20, Vector3(0, 0.11, 0), UNIFORM_DARK)
-	helmet.scale = Vector3(1.0, 0.85, 1.05)
-	_box(_head, Vector3(0.24, 0.05, 0.05), Vector3(0, 0.04, 0.12), Color(0.10, 0.12, 0.10))
+	_sphere(_head, 0.115, Vector3(0, 0.08, 0), SKIN, Vector3(1.0, 1.18, 1.02))
+	# خوذة نصف كرة
+	_sphere(_head, 0.148, Vector3(0, 0.11, 0), UNIFORM_DARK, Vector3(1.0, 0.92, 1.05), true)
+	_box(_head, Vector3(0.30, 0.035, 0.05), Vector3(0, 0.055, 0.11), Color(0.08, 0.09, 0.09))
+	# نظارة/واقي عينين
+	_box(_head, Vector3(0.21, 0.05, 0.045), Vector3(0, 0.075, 0.115), Color(0.12, 0.16, 0.20))
+	# حامل جهاز الرؤية الليلية
+	_box(_head, Vector3(0.06, 0.07, 0.05), Vector3(0, 0.10, -0.15), Color(0.10, 0.10, 0.11))
 
-	# الذراعان
+	# الذراعان: عضد + ساعد + قفاز
 	_arm_r = Node3D.new()
-	_arm_r.position = Vector3(0.27, 0.48, 0)
+	_arm_r.position = Vector3(0.28, 0.50, 0)
 	_torso.add_child(_arm_r)
 	_capsule(_arm_r, 0.075, 0.30, Vector3(0, -0.15, 0), uniform_color)
-	_capsule(_arm_r, 0.065, 0.28, Vector3(0, -0.40, 0), SKIN)
-	_box(_arm_r, Vector3(0.10, 0.10, 0.10), Vector3(0, -0.53, 0), METAL)
+	_capsule(_arm_r, 0.062, 0.26, Vector3(0, -0.40, 0), UNIFORM_DARK)
+	_box(_arm_r, Vector3(0.10, 0.11, 0.11), Vector3(0, -0.54, 0), Color(0.10, 0.10, 0.09))
 
 	_arm_l = Node3D.new()
-	_arm_l.position = Vector3(-0.27, 0.48, 0)
+	_arm_l.position = Vector3(-0.28, 0.50, 0)
 	_torso.add_child(_arm_l)
 	_capsule(_arm_l, 0.075, 0.30, Vector3(0, -0.15, 0), uniform_color)
-	_capsule(_arm_l, 0.065, 0.28, Vector3(0, -0.40, 0), SKIN)
-	_box(_arm_l, Vector3(0.10, 0.10, 0.10), Vector3(0, -0.53, 0), METAL)
+	_capsule(_arm_l, 0.062, 0.26, Vector3(0, -0.40, 0), UNIFORM_DARK)
+	_box(_arm_l, Vector3(0.10, 0.11, 0.11), Vector3(0, -0.54, 0), Color(0.10, 0.10, 0.09))
 
 	# موضع السلاح
 	_weapon_mount = Node3D.new()

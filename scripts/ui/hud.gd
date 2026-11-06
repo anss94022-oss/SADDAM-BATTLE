@@ -949,7 +949,7 @@ func _input(event: InputEvent) -> void:
 		_look_last = event.position
 		_look_moved += delta.length()
 		if _look_moved > 12.0:
-			_send_look(delta * 1.4)
+			_send_look(delta)
 
 
 func _send_look(delta: Vector2) -> void:
@@ -958,9 +958,9 @@ func _send_look(delta: Vector2) -> void:
 	if player.is_in_vehicle():
 		var vehicle = player.current_vehicle
 		if vehicle != null and vehicle.has_method("add_look_input"):
-			vehicle.add_look_input(delta * 1.4)
+			vehicle.add_look_input(delta)
 	else:
-		player.add_look_input(delta * 1.4)
+		player.add_look_input(delta)
 
 
 func _on_joystick_input(event: InputEvent) -> void:
