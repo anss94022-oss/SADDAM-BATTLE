@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://ca20frhas2p31"
-path="res://.godot/imported/hero_soldier.glb-87c96df04c15d80430786034ff21257a.scn"
+uid="uid://c3k8kxu13dmkj"
+path="res://.godot/imported/hero_mixamo.glb-d23b325311faf9233decb3a17838323a.scn"
 
 [deps]
 
-source_file="res://assets/characters/hero_soldier.glb"
-dest_files=["res://.godot/imported/hero_soldier.glb-87c96df04c15d80430786034ff21257a.scn"]
+source_file="res://assets/characters/hero_mixamo.glb"
+dest_files=["res://.godot/imported/hero_mixamo.glb-d23b325311faf9233decb3a17838323a.scn"]
 
 [params]
 

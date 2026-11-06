@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dndbu6bo5a46j"
-path="res://.godot/imported/hero_soldier_rig_basecolor.jpg-1b4469de5d5da462c98e5aa5bf69acc6.ctex"
+uid="uid://b6kvvt4a5rmrq"
+path="res://.godot/imported/hero_mixamo_rig_normal.jpg-ad915f17d51baccaea059613022ebf3e.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "544a607016be8dd5ec97486116e09fd1"
+"md5": "27c7271c72896fa6e38f6a4f804491cb"
 }
 
 [deps]
 
-source_file="res://assets/characters/hero_soldier_rig_basecolor.jpg"
-dest_files=["res://.godot/imported/hero_soldier_rig_basecolor.jpg-1b4469de5d5da462c98e5aa5bf69acc6.ctex"]
+source_file="res://assets/characters/hero_mixamo_rig_normal.jpg"
+dest_files=["res://.godot/imported/hero_mixamo_rig_normal.jpg-ad915f17d51baccaea059613022ebf3e.ctex"]
 
 [params]
 

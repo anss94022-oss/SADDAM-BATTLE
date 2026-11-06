@@ -524,6 +524,8 @@ func start_reload() -> void:
 	_is_reloading = true
 	_reload_timer = float(weapon["reload_time"])
 	AudioManager.play_3d("reload", global_position, -4.0)
+	if rig != null:
+		rig.trigger_reload()
 
 
 func _finish_reload() -> void:

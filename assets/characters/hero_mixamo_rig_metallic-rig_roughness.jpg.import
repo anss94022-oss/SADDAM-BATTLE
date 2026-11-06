@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dybahnc4m4b6d"
-path="res://.godot/imported/hero_soldier_rig_normal.jpg-d39b2b0808e4401d8c755f031aa08f09.ctex"
+uid="uid://bxt6wd1rja5gv"
+path="res://.godot/imported/hero_mixamo_rig_metallic-rig_roughness.jpg-d5c7ef4b8657f8c78ad0513ea666acad.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "27c7271c72896fa6e38f6a4f804491cb"
+"md5": "292cd4f7360af9984ed0bc12aab48663"
 }
 
 [deps]
 
-source_file="res://assets/characters/hero_soldier_rig_normal.jpg"
-dest_files=["res://.godot/imported/hero_soldier_rig_normal.jpg-d39b2b0808e4401d8c755f031aa08f09.ctex"]
+source_file="res://assets/characters/hero_mixamo_rig_metallic-rig_roughness.jpg"
+dest_files=["res://.godot/imported/hero_mixamo_rig_metallic-rig_roughness.jpg-d5c7ef4b8657f8c78ad0513ea666acad.ctex"]
 
 [params]
 

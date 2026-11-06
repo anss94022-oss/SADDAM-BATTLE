@@ -115,13 +115,15 @@ func _sphere(parent: Node3D, radius: float, position: Vector3, color: Color,
 	return mesh
 
 
-const MODEL_PATH := "res://assets/characters/hero_soldier.glb"
+const MODEL_PATH := "res://assets/characters/hero_mixamo.glb"
 
 var _using_model := false
 var _model_root: Node3D
 var _anim: AnimationPlayer
 var _model_inst: Node3D
 var _hand_bone: Node3D
+var _act := ""
+var _act_time := 0.0
 
 
 func _build() -> void:
@@ -155,16 +157,19 @@ func _build_from_model(packed: PackedScene) -> bool:
 	_anim = inst.find_child("AnimationPlayer", true, false) as AnimationPlayer
 	if _anim != null:
 		for anim_name in _anim.get_animation_list():
-			_anim.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
-		if _anim.has_animation("walk"):
-			_anim.play("walk")
+			# الحركات الدورية فقط تتكرر، والباقي يُلعب مرة واحدة
+			var looping := anim_name in ["idle", "walk", "run", "crouch"]
+			_anim.get_animation(anim_name).loop_mode = (
+					Animation.LOOP_LINEAR if looping else Animation.LOOP_NONE)
+		if _anim.has_animation("idle"):
+			_anim.play("idle")
 
 	if is_enemy:
 		_tint_enemy(inst)
 
 	_hand_bone = inst.find_child("mixamorig:RightHand", true, false)
 	_weapon_mount = Node3D.new()
-	_weapon_mount.position = Vector3(0.24, 1.15, -0.30)
+	_weapon_mount.position = Vector3(0.02, 1.30, -0.34)
 	_model_root.add_child(_weapon_mount)
 	_build_weapon_mesh("rifle_ak")
 
@@ -374,7 +379,7 @@ func _apply_colors() -> void:
 func animate(delta: float, speed: float, is_sprinting: bool,
 		is_crouching: bool, is_aiming: bool, is_firing: bool) -> void:
 	if _using_model:
-		_animate_model(delta, speed, is_sprinting, is_crouching, is_aiming)
+		_animate_model(delta, speed, is_sprinting, is_crouching, is_aiming, is_firing)
 		return
 	if _torso == null:
 		return
@@ -423,17 +428,32 @@ func animate(delta: float, speed: float, is_sprinting: bool,
 
 
 func _animate_model(delta: float, speed: float, is_sprinting: bool,
-		is_crouching: bool, is_aiming: bool) -> void:
+		is_crouching: bool, is_aiming: bool, is_firing: bool = false) -> void:
 	move_speed = lerpf(move_speed, speed, clampf(delta * 8.0, 0.0, 1.0))
 	crouch_amount = lerpf(crouch_amount, 1.0 if is_crouching else 0.0,
 			clampf(delta * 10.0, 0.0, 1.0))
 	aim_amount = lerpf(aim_amount, 1.0 if is_aiming else 0.0, clampf(delta * 12.0, 0.0, 1.0))
 	_phase += delta * (3.0 + move_speed * 0.9)
 
+	if _act == "reload":
+		_act_time -= delta
+		if _act_time <= 0.0:
+			_act = ""
+
 	if _anim != null:
-		var target := "walk"
-		var rate := 0.0
-		if move_speed > 4.6 or is_sprinting:
+		var target := "idle"
+		var rate := 1.0
+		if dead:
+			target = "death"
+		elif _act == "reload":
+			target = "reload"
+		elif is_firing and move_speed < 1.5:
+			# إطلاق من الثبات: الحركة تُسرَّع لتوافق معدل النيران
+			target = "fire"
+			rate = 2.2
+		elif is_crouching and move_speed <= 0.6:
+			target = "crouch"
+		elif move_speed > 4.6 or is_sprinting:
 			target = "run"
 			rate = clampf(move_speed / 7.2, 0.85, 1.5)
 		elif move_speed > 0.4:
@@ -442,19 +462,31 @@ func _animate_model(delta: float, speed: float, is_sprinting: bool,
 		if not _anim.has_animation(target):
 			target = _anim.get_animation_list()[0] if _anim.get_animation_list().size() > 0 else ""
 		if target != "" and _anim.current_animation != target:
-			_anim.play(target, 0.2)
-		_anim.speed_scale = rate
-		if rate <= 0.001 and target != "":
-			_anim.seek(0.0, true)
-
+			_anim.play(target, 0.18)
+		if not dead:
+			_anim.speed_scale = rate
+		else:
+			_anim.speed_scale = 1.0
 	if _weapon_mount != null:
-		_weapon_mount.position = Vector3(-0.02, 1.12, 0.26)
-		_weapon_mount.rotation = Vector3(0.15, 0.0, -0.75)
+		_weapon_mount.position = Vector3(0.02, 1.30, -0.34)
+		_weapon_mount.rotation = Vector3(-0.06 * aim_amount, 0.0, 0.0)
 
 	if _model_root != null:
 		_model_root.position.y = -crouch_amount * 0.30
-		_model_root.rotation.x = crouch_amount * 0.18 + aim_amount * 0.05
-		_model_root.rotation.z = sin(_phase) * 0.015 * clampf(move_speed / 6.0, 0.0, 1.0)
+		_model_root.rotation.x = aim_amount * 0.05
+
+
+func trigger_reload() -> void:
+	if dead:
+		return
+	_act = "reload"
+	_act_time = _clip_length("reload", 2.6)
+
+
+func _clip_length(clip: String, fallback: float) -> float:
+	if _anim != null and _anim.has_animation(clip):
+		return maxf(0.2, _anim.get_animation(clip).length)
+	return fallback
 
 
 func flash_damage() -> void:
@@ -474,6 +506,10 @@ func play_death() -> void:
 		return
 	if _using_model:
 		dead = true
+		if _anim != null and _anim.has_animation("death"):
+			_anim.speed_scale = 1.0
+			_anim.play("death", 0.05)
+			return
 		var t := create_tween()
 		t.set_parallel(true)
 		t.tween_property(self, "rotation_degrees:x", -84.0, 0.4)

@@ -38,7 +38,8 @@ Godot 4.3 · GDScript · Android ARM64 APK · GitHub Actions
 
 ## الأصول الخارجية
 
-- `assets/characters/hero_soldier.glb` — مجسم جندي واقعي من Grab3D (ترخيص CC0) بهيكل عظمي كامل وحركتا مشي وجري، يُستخدم للبطل والأعداء (الأعداء بصبغة حمراء).
+- `assets/characters/hero_mixamo.glb` — مجسم جندي واقعي من Grab3D (ترخيص CC0) بهيكل عظمي كامل، مع سبع حركات Mixamo مُعاد استهدافها عليه: `idle` (تصويب)، `walk`، `run`، `fire`، `reload`، `crouch`، `death`. يُستخدم للبطل والأعداء (الأعداء بصبغة حمراء).
+- حركات Mixamo (ترخيص Adobe Mixamo المجاني للاستخدام في المشاريع) مصدرها دفعة مفتوحة على Hugging Face، وحُوّلت FBX ← glTF بأداة FBX2glTF ثم أُعيد استهدافها بـ `tools/retarget_mixamo.py` (مطابقة الاتجاهات في فضاء العالم + تصحيح فرق وضعية الراحة بين الهيكلين).
 - أصوات الموسيقى والمؤثرات مولّدة رقمياً داخل المشروع (`tools/gen_audio.py`).
 - سيارات المشروع: نماذج GLB بأسلوب Kenney (CC0) مع مواد طلاء جديدة.
 
