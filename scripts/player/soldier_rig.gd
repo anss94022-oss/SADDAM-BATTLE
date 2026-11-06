@@ -115,7 +115,98 @@ func _sphere(parent: Node3D, radius: float, position: Vector3, color: Color,
 	return mesh
 
 
+const MODEL_PATH := "res://assets/characters/soldier_vanguard.glb"
+
+var _using_model := false
+var _model_root: Node3D
+var _anim: AnimationPlayer
+var _model_inst: Node3D
+var _hand_bone: Node3D
+
+
 func _build() -> void:
+	if ResourceLoader.exists(MODEL_PATH):
+		var packed := load(MODEL_PATH) as PackedScene
+		if packed != null and _build_from_model(packed):
+			return
+	_build_procedural()
+
+
+func _build_from_model(packed: PackedScene) -> bool:
+	var inst := packed.instantiate() as Node3D
+	if inst == null:
+		return false
+
+	_model_root = Node3D.new()
+	_model_root.name = "Model"
+	add_child(_model_root)
+	_model_root.add_child(inst)
+	_model_inst = inst
+
+	# ضبط الطول إلى 1.82 م وتثبيت القدمين على الأرض
+	var aabb := _aabb_of_node(inst)
+	var height := aabb.size.y
+	var factor := 1.82 / height if height > 0.01 else 1.0
+	inst.scale = Vector3.ONE * factor
+	inst.position = Vector3(0, -aabb.position.y * factor, 0)
+	# نماذج Mixamo تواجه +Z، ومحور Godot الأمامي -Z
+	inst.rotation.y = 0.0
+
+	_anim = inst.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	if _anim != null:
+		for anim_name in ["Idle", "Walk", "Run"]:
+			if _anim.has_animation(anim_name):
+				_anim.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
+		_anim.play("Idle")
+
+	if is_enemy:
+		_tint_enemy(inst)
+
+	_hand_bone = inst.find_child("mixamorig:RightHand", true, false)
+	_weapon_mount = Node3D.new()
+	_weapon_mount.position = Vector3(0.24, 1.15, -0.30)
+	_model_root.add_child(_weapon_mount)
+	_build_weapon_mesh("rifle_ak")
+
+	_head = _model_root
+	_body_root = _model_root
+	_using_model = true
+	return true
+
+
+func _aabb_of_node(node: Node3D) -> AABB:
+	var box := AABB()
+	var first := true
+	for child in node.find_children("*", "MeshInstance3D", true, false):
+		var mi := child as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			continue
+		var local := mi.global_transform
+		var instance_box := local * mi.mesh.get_aabb()
+		box = instance_box if first else box.merge(instance_box)
+		first = false
+	if first:
+		return AABB(Vector3.ZERO, Vector3(1.8, 1.8, 1.8))
+	return box
+
+
+func _tint_enemy(inst: Node3D) -> void:
+	for child in inst.find_children("*", "MeshInstance3D", true, false):
+		var mi := child as MeshInstance3D
+		if mi == null:
+			continue
+		var base := mi.get_active_material(0)
+		var mat: StandardMaterial3D
+		if base is StandardMaterial3D:
+			mat = (base as StandardMaterial3D).duplicate()
+		else:
+			mat = StandardMaterial3D.new()
+		mat.albedo_color = Color(0.85, 0.32, 0.26)
+		mat.roughness = minf(mat.roughness, 0.85)
+		mi.material_override = mat
+
+
+func _build_procedural() -> void:
 	_body_root = Node3D.new()
 	add_child(_body_root)
 
@@ -262,6 +353,9 @@ func _apply_colors() -> void:
 ## تُحدَّث الحركة كل إطار من كود اللاعب/العدو.
 func animate(delta: float, speed: float, is_sprinting: bool,
 		is_crouching: bool, is_aiming: bool, is_firing: bool) -> void:
+	if _using_model:
+		_animate_model(delta, speed, is_sprinting, is_crouching, is_aiming)
+		return
 	if _torso == null:
 		return
 
@@ -308,6 +402,37 @@ func animate(delta: float, speed: float, is_sprinting: bool,
 		_torso.rotation.x += kick * 0.5
 
 
+func _animate_model(delta: float, speed: float, is_sprinting: bool,
+		is_crouching: bool, is_aiming: bool) -> void:
+	move_speed = lerpf(move_speed, speed, clampf(delta * 8.0, 0.0, 1.0))
+	crouch_amount = lerpf(crouch_amount, 1.0 if is_crouching else 0.0,
+			clampf(delta * 10.0, 0.0, 1.0))
+	aim_amount = lerpf(aim_amount, 1.0 if is_aiming else 0.0, clampf(delta * 12.0, 0.0, 1.0))
+	_phase += delta * (3.0 + move_speed * 0.9)
+
+	if _anim != null:
+		var target := "Idle"
+		var rate := 1.0
+		if move_speed > 4.6 or is_sprinting:
+			target = "Run"
+			rate = clampf(move_speed / 7.2, 0.85, 1.5)
+		elif move_speed > 0.4:
+			target = "Walk"
+			rate = clampf(move_speed / 2.4, 0.8, 1.7)
+		if _anim.current_animation != target and _anim.has_animation(target):
+			_anim.play(target, 0.18)
+		_anim.speed_scale = rate
+
+	if _weapon_mount != null:
+		_weapon_mount.position = Vector3(-0.02, 1.12, 0.26)
+		_weapon_mount.rotation = Vector3(0.15, 0.0, -0.75)
+
+	if _model_root != null:
+		_model_root.position.y = -crouch_amount * 0.30
+		_model_root.rotation.x = crouch_amount * 0.18 + aim_amount * 0.05
+		_model_root.rotation.z = sin(_phase) * 0.015 * clampf(move_speed / 6.0, 0.0, 1.0)
+
+
 func flash_damage() -> void:
 	if _torso == null:
 		return
@@ -322,6 +447,13 @@ func flash_damage() -> void:
 
 func play_death() -> void:
 	if dead or _body_root == null:
+		return
+	if _using_model:
+		dead = true
+		var t := create_tween()
+		t.set_parallel(true)
+		t.tween_property(self, "rotation_degrees:x", -84.0, 0.4)
+		t.tween_property(_model_root, "position:y", -0.05, 0.4)
 		return
 	dead = true
 	var tween := create_tween()
